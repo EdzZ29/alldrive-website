@@ -1,26 +1,272 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  --color-brand: #27abff;
+  --color-brand-600: #0b8fe6;
+  --color-brand-700: #0872ba;
+  --color-brand-50: #eaf6ff;
+  --color-brand-100: #cfeaff;
+
+  --color-ink: #070c16;
+  --color-ink-800: #0d1422;
+  --color-ink-700: #141d2f;
+  --color-ink-600: #1e2a40;
+  --color-ink-500: #2b3a55;
+
+  --color-paper: #f3f6fa;
+  --color-mute: #5d6879;
+  --color-mute-dark: #94a0b4;
+  --color-line: #e2e8f0;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-float-slow: float 8s ease-in-out infinite;
+  --animate-spin-slow: spin 22s linear infinite;
+  --animate-ping-slow: ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  --animate-drive: drive 9s linear infinite;
+  --animate-dash: dash 1.2s linear infinite;
+  --animate-pop-in: pop-in 0.6s var(--ease-out-expo) both;
+
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  @keyframes drive {
+    from {
+      transform: translateX(-10vw);
+    }
+    to {
+      transform: translateX(110vw);
+    }
+  }
+  @keyframes dash {
+    to {
+      stroke-dashoffset: -40;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
+}
+
+/* Clip sideways overflow (e.g. elements waiting to slide in) without
+   creating a scroll container, so sticky positioning keeps working. */
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: clip;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+::selection {
+  background: var(--color-brand);
+  color: var(--color-ink);
+}
+
+/* Headline lines that rise in on page load */
+.rise {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+}
+.rise > span {
+  display: inline-block;
+  animation: rise 1s var(--ease-out-expo) both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes rise {
+  from {
+    transform: translateY(105%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* Slow zoom-out on the hero background photo */
+.hero-bg {
+  animation: hero-zoom 14s var(--ease-out-expo) both;
+}
+@keyframes hero-zoom {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.fade-up {
+  animation: pop-in 0.9s var(--ease-out-expo) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Scroll reveal: hidden until <RevealObserver /> animates it in */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+}
+[data-reveal="left"] {
+  transform: translateX(-32px);
+}
+[data-reveal="right"] {
+  transform: translateX(32px);
+}
+[data-reveal="zoom"] {
+  transform: scale(0.94);
+}
+
+/* Subtle line grid used on dark sections */
+.grid-lines {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M64 0H0v64' fill='none' stroke='%23ffffff' stroke-opacity='0.05'/%3E%3C/svg%3E");
+}
+.dot-grid {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='%23070c16' fill-opacity='0.09'/%3E%3C/svg%3E");
+}
+
+.marquee-mask:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+:root {
+  /* shadcn/ui tokens mapped to the AllDrive brand */
+  --background: #ffffff;
+  --foreground: #070c16;
+  --card: #ffffff;
+  --card-foreground: #070c16;
+  --popover: #ffffff;
+  --popover-foreground: #070c16;
+  --primary: #27abff;
+  --primary-foreground: #070c16;
+  --secondary: #070c16;
+  --secondary-foreground: #ffffff;
+  --muted: #f3f6fa;
+  --muted-foreground: #5d6879;
+  --accent: #eaf6ff;
+  --accent-foreground: #0872ba;
+  --destructive: #e5484d;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #27abff;
+  --chart-1: #27abff;
+  --chart-2: #0b8fe6;
+  --chart-3: #0872ba;
+  --chart-4: #2b3a55;
+  --chart-5: #070c16;
+  --radius: 1rem;
+  --sidebar: #070c16;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #27abff;
+  --sidebar-primary-foreground: #070c16;
+  --sidebar-accent: #141d2f;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.1);
+  --sidebar-ring: #27abff;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
+  }
 }

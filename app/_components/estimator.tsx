@@ -1,0 +1,273 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import {
+  BusFront,
+  CarFront,
+  CarTaxiFront,
+  Calculator,
+  KeyRound,
+  MessageSquareText,
+  Minus,
+  Phone,
+  Plus,
+  Truck,
+  UserCheck,
+} from "lucide-react";
+import { driverFeeByRoute, fleet, peso, routes, site, type RouteId, type VehicleId } from "@/lib/site";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { SectionHeading } from "./section-heading";
+import { MessengerIcon } from "./brand";
+
+const vehicleIcons: Record<VehicleId, typeof CarFront> = {
+  sedan: CarTaxiFront,
+  mpv: CarFront,
+  suv: Truck,
+  van: BusFront,
+};
+
+const fieldLabel = "text-xs font-bold tracking-[0.2em] text-white/45 uppercase";
+
+/** Smoothly tweens the displayed number toward `value`. */
+function useTween(value: number, duration = 500) {
+  const [display, setDisplay] = useState(value);
+  const from = useRef(value);
+
+  useEffect(() => {
+    const start = performance.now();
+    const initial = from.current;
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const next = Math.round(initial + (value - initial) * (1 - Math.pow(1 - t, 3)));
+      from.current = next;
+      setDisplay(next);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration]);
+
+  return display;
+}
+
+export function Estimator() {
+  const [mode, setMode] = useState<"self" | "driver">("self");
+  const [vehicleId, setVehicleId] = useState<VehicleId>("mpv");
+  const [routeId, setRouteId] = useState<RouteId>("city");
+  const [days, setDays] = useState(1);
+
+  const withDriver = mode === "driver";
+  const vehicle = fleet.find((v) => v.id === vehicleId)!;
+  const route = routes.find((r) => r.id === routeId)!;
+  const rental = vehicle.rates[routeId] * days;
+  const driverRate = driverFeeByRoute[routeId];
+  const driver = withDriver && driverRate ? driverRate * days : 0;
+  const total = rental + driver;
+  const shownTotal = useTween(total);
+
+  const message =
+    `Hi ${site.name}! I'd like to book a ${vehicle.name} (${withDriver ? "with driver" : "self-drive"}) ` +
+    `for ${route.long}, ${days} day${days > 1 ? "s" : ""}. Estimated total: ${peso(total)}. Is it available?`;
+
+  return (
+    <section id="book" className="relative overflow-hidden bg-ink py-24 text-white sm:py-32">
+      <div aria-hidden className="grid-lines absolute inset-0" />
+      {/* Animated road */}
+      <svg aria-hidden className="absolute inset-x-0 bottom-10 h-6 w-full opacity-30" preserveAspectRatio="none">
+        <line x1="0" y1="12" x2="100%" y2="12" stroke="#27abff" strokeWidth="3" strokeDasharray="22 18" className="animate-dash" />
+      </svg>
+      <div aria-hidden className="absolute bottom-[42px] left-0 animate-drive text-brand">
+        <CarFront className="size-7" />
+      </div>
+
+      <div className="relative mx-auto grid max-w-7xl gap-14 px-5 lg:grid-cols-12 lg:gap-10">
+        <div className="lg:col-span-5">
+          <SectionHeading index="02" eyebrow="Instant estimate" title="Plan your trip. See the price." dark>
+            Choose how you want to travel, your vehicle and destination. Get a ballpark total in seconds,
+            then send it to us to lock in your booking.
+          </SectionHeading>
+
+          <ul className="mt-10 space-y-4">
+            {[
+              { Icon: Calculator, title: "Transparent pricing", body: "Rates per destination, no hidden fees." },
+              { Icon: KeyRound, title: "Self-drive freedom", body: "Valid license? Take the wheel." },
+              { Icon: UserCheck, title: "Or ride with a pro", body: "Our drivers know Caraga's roads inside out." },
+            ].map(({ Icon, title, body }, i) => (
+              <li key={title} data-reveal="left" style={{ "--d": `${200 + i * 100}ms` } as React.CSSProperties} className="flex gap-4">
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/5 text-brand ring-1 ring-white/10">
+                  <Icon className="size-5" />
+                </span>
+                <div>
+                  <p className="font-semibold">{title}</p>
+                  <p className="text-sm text-white/55">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div data-reveal="zoom" className="lg:col-span-7">
+          <Card className="gap-0 rounded-[2rem] border border-white/10 bg-ink-800 p-5 text-white ring-0 sm:p-8">
+            {/* Mode */}
+            <ToggleGroup
+              type="single"
+              value={mode}
+              onValueChange={(v) => v && setMode(v as "self" | "driver")}
+              aria-label="How do you want to travel?"
+              spacing={1}
+              className="grid w-full grid-cols-2 rounded-2xl bg-ink-700 p-1.5"
+            >
+              {[
+                { value: "self", label: "Self-drive", Icon: KeyRound },
+                { value: "driver", label: "With driver", Icon: UserCheck },
+              ].map(({ value, label, Icon }) => (
+                <ToggleGroupItem
+                  key={value}
+                  value={value}
+                  className="h-11 rounded-xl text-sm font-bold text-white/60 transition-colors duration-300 hover:bg-white/5 hover:text-white data-[state=on]:bg-brand data-[state=on]:text-ink"
+                >
+                  <Icon /> {label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+
+            {/* Vehicle */}
+            <div className="mt-7">
+              <p id="vehicle-label" className={fieldLabel}>Vehicle</p>
+              <ToggleGroup
+                type="single"
+                value={vehicleId}
+                onValueChange={(v) => v && setVehicleId(v as VehicleId)}
+                aria-labelledby="vehicle-label"
+                className="mt-3 grid w-full grid-cols-2 sm:grid-cols-4"
+              >
+                {fleet.map((v) => {
+                  const Icon = vehicleIcons[v.id];
+                  return (
+                    <ToggleGroupItem
+                      key={v.id}
+                      value={v.id}
+                      variant="outline"
+                      className="group/vehicle h-auto flex-col items-start gap-0 rounded-2xl border-white/10 p-3.5 text-left text-white hover:border-white/30 hover:bg-white/5 hover:text-white data-[state=on]:border-brand data-[state=on]:bg-brand/10"
+                    >
+                      <Icon className="size-6! text-white/60 transition-transform duration-300 group-hover/vehicle:-translate-y-0.5 group-data-[state=on]/vehicle:text-brand" />
+                      <span className="mt-3 text-sm font-bold">{v.short}</span>
+                      <span className="text-xs font-normal text-white/50">{v.seats}</span>
+                    </ToggleGroupItem>
+                  );
+                })}
+              </ToggleGroup>
+            </div>
+
+            <div className="mt-7 grid gap-5 sm:grid-cols-[1fr_auto]">
+              <div>
+                <p id="destination-label" className={fieldLabel}>Destination</p>
+                <Select value={routeId} onValueChange={(v) => setRouteId(v as RouteId)}>
+                  <SelectTrigger
+                    aria-labelledby="destination-label"
+                    className="mt-3 h-14! w-full rounded-2xl border-white/10 bg-ink-700 px-4 text-base font-semibold text-white focus-visible:border-brand [&>svg]:text-brand"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper" className="rounded-xl border border-white/10 bg-ink-800 text-white">
+                    {routes.map((r) => (
+                      <SelectItem
+                        key={r.id}
+                        value={r.id}
+                        className="rounded-lg py-2.5 text-sm focus:bg-brand/15 focus:text-white"
+                      >
+                        {r.long}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <p className={fieldLabel}>Days</p>
+                <div className="mt-3 flex h-14 items-center rounded-2xl border border-white/10 bg-ink-700 p-1.5">
+                  <Button
+                    variant="ghost"
+                    size="icon-xl"
+                    aria-label="Fewer days"
+                    onClick={() => setDays((d) => Math.max(1, d - 1))}
+                    disabled={days === 1}
+                    className="text-white/70 hover:bg-white/10 hover:text-white"
+                  >
+                    <Minus />
+                  </Button>
+                  <output aria-live="polite" className="w-14 text-center font-display text-xl font-bold tabular-nums">
+                    {days}
+                  </output>
+                  <Button
+                    variant="ghost"
+                    size="icon-xl"
+                    aria-label="More days"
+                    onClick={() => setDays((d) => Math.min(30, d + 1))}
+                    className="text-white/70 hover:bg-white/10 hover:text-white"
+                  >
+                    <Plus />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="mt-7 rounded-2xl bg-ink-700 p-5">
+              <dl className="space-y-2.5 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-white/60">
+                    Rental · {peso(vehicle.rates[routeId])} × {days} day{days > 1 ? "s" : ""}
+                  </dt>
+                  <dd className="font-semibold tabular-nums">{peso(rental)}</dd>
+                </div>
+                {withDriver && (
+                  <div className="flex justify-between">
+                    <dt className="text-white/60">Driver fee{driverRate ? ` · ${peso(driverRate)} × ${days}` : ""}</dt>
+                    <dd className="font-semibold tabular-nums">{driverRate ? peso(driver) : "Quoted on request"}</dd>
+                  </div>
+                )}
+              </dl>
+              <Separator className="my-4 bg-white/10" />
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className={fieldLabel}>Estimated total</p>
+                  <p className="mt-1 text-xs text-white/40">
+                    {withDriver ? `Driver's meals${days > 1 ? " & lodging" : ""} shouldered by renter.` : "Fuel not included."}
+                  </p>
+                </div>
+                <p className="font-display text-4xl font-extrabold text-brand tabular-nums sm:text-5xl">{peso(shownTotal)}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-3">
+              <Button asChild variant="brand" size="xl" className="hover:translate-y-0">
+                <a href={`sms:${site.phoneHref}?&body=${encodeURIComponent(message)}`}>
+                  <MessageSquareText /> Text to book
+                </a>
+              </Button>
+              <Button asChild variant="glass" size="xl" className="border-white/15 bg-transparent">
+                <a href={site.messenger} target="_blank" rel="noopener noreferrer">
+                  <MessengerIcon className="text-brand" /> Messenger
+                </a>
+              </Button>
+              <Button asChild variant="glass" size="xl" className="border-white/15 bg-transparent">
+                <a href={`tel:${site.phoneHref}`}>
+                  <Phone className="text-brand" /> Call us
+                </a>
+              </Button>
+            </div>
+            <p className="mt-4 text-center text-xs text-white/40">
+              Estimate only. Final rate confirmed upon booking. Holidays and peak seasons may vary.
+            </p>
+          </Card>
+        </div>
+      </div>
+    </section>
+  );
+}
