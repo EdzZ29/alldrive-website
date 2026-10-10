@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowRight,
   BusFront,
   CarFront,
   CarTaxiFront,
   Calculator,
+  CalendarCheck,
   KeyRound,
   MessageSquareText,
   Minus,
@@ -14,7 +16,7 @@ import {
   Truck,
   UserCheck,
 } from "lucide-react";
-import { driverFeeByRoute, fleet, peso, routes, site, type RouteId, type VehicleId } from "@/lib/site";
+import { estimateTrip, fleet, peso, routes, site, type RouteId, type VehicleId } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SectionHeading } from "./section-heading";
 import { MessengerIcon } from "./brand";
+import { BookingDialog } from "./booking-dialog";
 
 const vehicleIcons: Record<VehicleId, typeof CarFront> = {
   sedan: CarTaxiFront,
@@ -62,12 +65,8 @@ export function Estimator() {
   const [days, setDays] = useState(1);
 
   const withDriver = mode === "driver";
-  const vehicle = fleet.find((v) => v.id === vehicleId)!;
   const route = routes.find((r) => r.id === routeId)!;
-  const rental = vehicle.rates[routeId] * days;
-  const driverRate = driverFeeByRoute[routeId];
-  const driver = withDriver && driverRate ? driverRate * days : 0;
-  const total = rental + driver;
+  const { vehicle, driverRate, rental, driver, total } = estimateTrip(vehicleId, routeId, days, withDriver);
   const shownTotal = useTween(total);
 
   const message =
@@ -245,10 +244,18 @@ export function Estimator() {
               </div>
             </div>
 
-            <div className="mt-5 grid gap-2 sm:grid-cols-3">
-              <Button asChild variant="brand" size="xl" className="hover:translate-y-0">
+            <BookingDialog defaults={{ vehicleId, routeId, days, mode }}>
+              <Button variant="brand" size="xl" className="group mt-5 h-16 w-full text-lg">
+                <CalendarCheck className="size-6!" />
+                Book now
+                <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
+              </Button>
+            </BookingDialog>
+
+            <div className="mt-2 grid gap-2 sm:grid-cols-3">
+              <Button asChild variant="glass" size="xl" className="border-white/15 bg-transparent">
                 <a href={`sms:${site.phoneHref}?&body=${encodeURIComponent(message)}`}>
-                  <MessageSquareText /> Text to book
+                  <MessageSquareText className="text-brand" /> Text us
                 </a>
               </Button>
               <Button asChild variant="glass" size="xl" className="border-white/15 bg-transparent">

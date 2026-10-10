@@ -176,3 +176,13 @@ export const peso = (n: number, decimals = 0) =>
   "₱" + n.toLocaleString("en-PH", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
 export const startingRate = Math.min(...fleet.map((v) => v.rates.city));
+
+/** Trip estimate used by both the estimator and the booking form. */
+export function estimateTrip(vehicleId: VehicleId, routeId: RouteId, days: number, withDriver: boolean) {
+  const vehicle = fleet.find((v) => v.id === vehicleId)!;
+  const dailyRate = vehicle.rates[routeId];
+  const driverRate = driverFeeByRoute[routeId];
+  const rental = dailyRate * days;
+  const driver = withDriver && driverRate ? driverRate * days : 0;
+  return { vehicle, dailyRate, driverRate, rental, driver, total: rental + driver };
+}
