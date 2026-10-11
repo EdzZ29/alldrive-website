@@ -123,14 +123,14 @@ const jsonLd = {
         priceCurrency: "PHP",
         unitText: "per day, within Butuan City",
       },
-      itemOffered: { "@type": "Product", name: `${v.name}, ${v.seats}` },
+      itemOffered: { "@type": "Service", name: `${v.name} rental, ${v.seats}`, serviceType: "Car rental" },
     })).concat({
       "@type": "Offer",
       name: "Professional driver",
       priceCurrency: "PHP",
       price: driverRate,
       priceSpecification: { "@type": "UnitPriceSpecification", price: driverRate, priceCurrency: "PHP", unitText: "per day" },
-      itemOffered: { "@type": "Product", name: "Professional driver service" },
+      itemOffered: { "@type": "Service", name: "Professional driver service", serviceType: "Chauffeur service" },
     }),
   },
 };
