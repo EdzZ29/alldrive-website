@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { BadgeCheck, CarFront, Clock, MessagesSquare, Phone, Receipt, ShieldCheck, Sparkles, Wallet } from "lucide-react";
 import brandImg from "@/public/images/alldrive.jpg";
-import { fleet, routes, site, startingRate } from "@/lib/site";
+import { models, places, site, startingRate } from "@/lib/site";
 import { CountUp } from "./count-up";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,8 +83,8 @@ export function WhyUs() {
         {/* Stats */}
         <dl data-reveal className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-[1.75rem] bg-brand-600 lg:grid-cols-4">
           {[
-            { value: <CountUp to={fleet.length} />, label: "Vehicle classes" },
-            { value: <CountUp to={routes.length} suffix="+" />, label: "Destinations served" },
+            { value: <CountUp to={models.length} />, label: "Cars in the fleet" },
+            { value: <CountUp to={places.length} suffix="+" />, label: "Mindanao destinations" },
             { value: <CountUp to={15} />, label: "Max seats per van" },
             { value: <CountUp to={startingRate} prefix="₱" />, label: "Starting daily rate" },
           ].map((s) => (

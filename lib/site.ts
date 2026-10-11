@@ -1,8 +1,19 @@
 import type { StaticImageData } from "next/image";
-import sedanImg from "@/public/images/sedan.jpg";
-import mpvImg from "@/public/images/mpv.jpg";
-import suvImg from "@/public/images/suv.jpg";
-import vanImg from "@/public/images/van.jpg";
+import viosBlack from "@/public/images/fleet/toyota-vios-black.webp";
+import viosBlue from "@/public/images/fleet/toyota-vios-blue.webp";
+import viosGreen from "@/public/images/fleet/toyota-vios-green.webp";
+import viosSilver from "@/public/images/fleet/toyota-vios-silver.webp";
+import avanza from "@/public/images/fleet/toyota-avanza.webp";
+import livina from "@/public/images/fleet/nissan-livina.webp";
+import innovaWhite from "@/public/images/fleet/toyota-innova-white.webp";
+import innovaRed from "@/public/images/fleet/toyota-innova-red.webp";
+import fortuner from "@/public/images/fleet/toyota-fortuner.webp";
+import montero from "@/public/images/fleet/mitsubishi-montero-sport.webp";
+import terra from "@/public/images/fleet/nissan-terra.webp";
+import hilux from "@/public/images/fleet/toyota-hilux.webp";
+import commuter from "@/public/images/fleet/toyota-hiace-commuter.webp";
+import grandia from "@/public/images/fleet/toyota-hiace-gl-grandia.webp";
+import urvan from "@/public/images/fleet/nissan-urvan.webp";
 
 /**
  * All business details live here. Before going live, set the
@@ -15,7 +26,7 @@ export const site = {
   legalName: "AllDrive Rent a Car Butuan",
   tagline: "Rent a Car in Butuan City, Caraga Region",
   description:
-    "AllDrive Rent a Car Butuan: self-drive or with a professional driver, open 24 hours. Sedans, MPVs, SUVs, pickups and vans for city drives, airport pickups, weddings and trips across Caraga, CDO and Davao.",
+    "AllDrive Rent a Car Butuan: self-drive from ₱1,300/day or with a professional driver, open 24 hours. Toyota Vios, Innova, Fortuner, Hilux, Hiace and more for trips anywhere in Mindanao.",
   url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000", // set NEXT_PUBLIC_SITE_URL to the live domain
   // Primary number, used for the main call/text buttons.
   phone: "0946 126 0177",
@@ -24,6 +35,7 @@ export const site = {
     { network: "Smart", display: "0946 126 0177", href: "+639461260177" },
     { network: "Globe", display: "0956 227 5764", href: "+639562275764" },
   ],
+  email: "alldrivebtc@gmail.com",
   messenger: "https://m.me/alldriverentacarbutuan",
   facebook: "https://www.facebook.com/alldriverentacarbutuan",
   mapsUrl: `https://www.google.com/maps/place/?q=place_id:${googlePlaceId}`,
@@ -39,15 +51,7 @@ export const site = {
     country: "PH",
   },
   hours: "Open 24 hours",
-  areaServed: [
-    "Butuan City",
-    "Agusan del Norte",
-    "Agusan del Sur",
-    "Surigao del Norte",
-    "Surigao del Sur",
-    "Cagayan de Oro",
-    "Davao City",
-  ],
+  areaServed: ["Butuan City", "Caraga", "Cagayan de Oro", "Davao City", "Mindanao"],
 } as const;
 
 // From the Google Business listing. Update the count now and then.
@@ -79,17 +83,124 @@ export const nav = [
   { label: "Contact", href: "#contact" },
 ] as const;
 
-export const routes = [
-  { id: "city", label: "City Drive", long: "Butuan City Drive" },
-  { id: "adn", label: "ADNorte", long: "Agusan del Norte" },
-  { id: "ags", label: "AGSur", long: "Agusan del Sur" },
-  { id: "sdn", label: "SDNorte", long: "Surigao del Norte" },
-  { id: "sds", label: "SDSur", long: "Surigao del Sur" },
-  { id: "cdo", label: "CDO City", long: "Cagayan de Oro City" },
-  { id: "dav", label: "Davao City", long: "Davao City" },
+// Rate zones. Every Mindanao destination below maps to one of these.
+export const zones = [
+  { id: "butuan", label: "Butuan City", short: "Butuan" },
+  { id: "caraga", label: "Within Caraga", short: "Caraga" },
+  { id: "cdo-davao", label: "CDO & Davao City", short: "CDO / Davao" },
+  { id: "outside", label: "Rest of Mindanao", short: "Outside" },
 ] as const;
 
-export type RouteId = (typeof routes)[number]["id"];
+export type ZoneId = (typeof zones)[number]["id"];
+
+export type Place = { id: string; name: string; kind: "City" | "Province"; zone: ZoneId };
+
+const place = (name: string, kind: Place["kind"], zone: ZoneId): Place => ({
+  id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+  name,
+  kind,
+  zone,
+});
+
+// All Mindanao provinces and cities, grouped by region.
+export const regions: { name: string; places: Place[] }[] = [
+  {
+    name: "Caraga",
+    places: [
+      place("Butuan City", "City", "butuan"),
+      place("Agusan del Norte", "Province", "caraga"),
+      place("Agusan del Sur", "Province", "caraga"),
+      place("Dinagat Islands", "Province", "caraga"),
+      place("Surigao del Norte", "Province", "caraga"),
+      place("Surigao del Sur", "Province", "caraga"),
+      place("Bayugan City", "City", "caraga"),
+      place("Bislig City", "City", "caraga"),
+      place("Cabadbaran City", "City", "caraga"),
+      place("Surigao City", "City", "caraga"),
+      place("Tandag City", "City", "caraga"),
+    ],
+  },
+  {
+    name: "Northern Mindanao",
+    places: [
+      place("Cagayan de Oro City", "City", "cdo-davao"),
+      place("Bukidnon", "Province", "outside"),
+      place("Camiguin", "Province", "outside"),
+      place("Lanao del Norte", "Province", "outside"),
+      place("Misamis Occidental", "Province", "outside"),
+      place("Misamis Oriental", "Province", "outside"),
+      place("El Salvador City", "City", "outside"),
+      place("Gingoog City", "City", "outside"),
+      place("Iligan City", "City", "outside"),
+      place("Malaybalay City", "City", "outside"),
+      place("Oroquieta City", "City", "outside"),
+      place("Ozamiz City", "City", "outside"),
+      place("Tangub City", "City", "outside"),
+      place("Valencia City", "City", "outside"),
+    ],
+  },
+  {
+    name: "Davao Region",
+    places: [
+      place("Davao City", "City", "cdo-davao"),
+      place("Davao de Oro", "Province", "outside"),
+      place("Davao del Norte", "Province", "outside"),
+      place("Davao del Sur", "Province", "outside"),
+      place("Davao Occidental", "Province", "outside"),
+      place("Davao Oriental", "Province", "outside"),
+      place("Digos City", "City", "outside"),
+      place("Mati City", "City", "outside"),
+      place("Panabo City", "City", "outside"),
+      place("Samal City", "City", "outside"),
+      place("Tagum City", "City", "outside"),
+    ],
+  },
+  {
+    name: "Soccsksargen",
+    places: [
+      place("Cotabato", "Province", "outside"),
+      place("Sarangani", "Province", "outside"),
+      place("South Cotabato", "Province", "outside"),
+      place("Sultan Kudarat", "Province", "outside"),
+      place("General Santos City", "City", "outside"),
+      place("Kidapawan City", "City", "outside"),
+      place("Koronadal City", "City", "outside"),
+      place("Tacurong City", "City", "outside"),
+    ],
+  },
+  {
+    name: "Zamboanga Peninsula",
+    places: [
+      place("Zamboanga del Norte", "Province", "outside"),
+      place("Zamboanga del Sur", "Province", "outside"),
+      place("Zamboanga Sibugay", "Province", "outside"),
+      place("Dapitan City", "City", "outside"),
+      place("Dipolog City", "City", "outside"),
+      place("Isabela City", "City", "outside"),
+      place("Pagadian City", "City", "outside"),
+      place("Zamboanga City", "City", "outside"),
+    ],
+  },
+  {
+    name: "Bangsamoro & Sulu",
+    places: [
+      place("Basilan", "Province", "outside"),
+      place("Lanao del Sur", "Province", "outside"),
+      place("Maguindanao del Norte", "Province", "outside"),
+      place("Maguindanao del Sur", "Province", "outside"),
+      place("Sulu", "Province", "outside"),
+      place("Tawi-Tawi", "Province", "outside"),
+      place("Cotabato City", "City", "outside"),
+      place("Lamitan City", "City", "outside"),
+      place("Marawi City", "City", "outside"),
+    ],
+  },
+];
+
+export const places = regions.flatMap((r) => r.places);
+export const findPlace = (id: string) => places.find((p) => p.id === id) ?? places[0];
+export const placesInZone = (zone: ZoneId) => places.filter((p) => p.zone === zone);
+
 export type VehicleId = "sedan" | "mpv" | "suv" | "van";
 
 export type Vehicle = {
@@ -99,11 +210,10 @@ export type Vehicle = {
   seats: string;
   blurb: string;
   tags: string[];
-  image: StaticImageData;
-  rates: Record<RouteId, number>;
+  // Daily self-drive rate in PHP per zone. null = rate on request.
+  rates: Record<ZoneId, number | null>;
 };
 
-// Daily rental rates in PHP, self-drive, per destination.
 export const fleet: Vehicle[] = [
   {
     id: "sedan",
@@ -112,8 +222,7 @@ export const fleet: Vehicle[] = [
     seats: "5 seats",
     blurb: "Easy to park, light on fuel. Built for city errands and business trips.",
     tags: ["City-friendly", "Fuel-efficient"],
-    image: sedanImg,
-    rates: { city: 1300, adn: 1800, ags: 2000, sdn: 1800, sds: 2000, cdo: 2500, dav: 2800 },
+    rates: { butuan: 1300, caraga: 1800, "cdo-davao": 2300, outside: 2800 },
   },
   {
     id: "mpv",
@@ -122,67 +231,98 @@ export const fleet: Vehicle[] = [
     seats: "7-8 seats",
     blurb: "Room for the whole family plus bags. The road-trip favorite.",
     tags: ["Family size", "Roomy cabin"],
-    image: mpvImg,
-    rates: { city: 1900, adn: 2400, ags: 2500, sdn: 2400, sds: 2500, cdo: 3000, dav: 3500 },
+    rates: { butuan: 1800, caraga: 2300, "cdo-davao": 2800, outside: 3300 },
   },
   {
     id: "suv",
-    name: "Full-Size SUV & Pickup",
+    name: "SUV & Pickup",
     short: "SUV & Pickup",
-    seats: "7 seats",
+    seats: "5-7 seats",
     blurb: "High clearance and torque for provincial roads and long hauls.",
     tags: ["High clearance", "Long trips"],
-    image: suvImg,
-    rates: { city: 2500, adn: 2800, ags: 3000, sdn: 3000, sds: 3000, cdo: 3500, dav: 4000 },
+    rates: { butuan: 2500, caraga: 3000, "cdo-davao": 3500, outside: 4000 },
   },
   {
     id: "van",
     name: "Van",
     short: "Van",
-    seats: "13-15 seats",
+    seats: "12-15 seats",
     blurb: "Move the whole team, entourage or barkada in one comfortable ride.",
     tags: ["Group travel", "Big cargo space"],
-    image: vanImg,
-    rates: { city: 3500, adn: 4000, ags: 4000, sdn: 4000, sds: 4000, cdo: 4500, dav: 4500 },
+    // TODO: van rates not provided yet.
+    rates: { butuan: null, caraga: null, "cdo-davao": null, outside: null },
   },
 ];
 
-// Driver fees in PHP. null = not offered for that option.
-export const driverFees: { destination: string; nineHours: number | null; wholeDay: number | null }[] = [
-  { destination: "City Drive", nineHours: 500, wholeDay: null },
-  { destination: "Magallanes / Cabadbaran", nineHours: 800, wholeDay: 1000 },
-  { destination: "Kitcharao", nineHours: 800, wholeDay: 1000 },
-  { destination: "Agusan del Norte", nineHours: 800, wholeDay: 1000 },
-  { destination: "Agusan del Sur (Bayugan to San Francisco)", nineHours: 800, wholeDay: 1000 },
-  { destination: "Agusan del Sur (rest of AGSur)", nineHours: 1000, wholeDay: 1000 },
-  { destination: "Surigao del Norte", nineHours: 800, wholeDay: 1000 },
-  { destination: "Surigao del Sur", nineHours: null, wholeDay: 1000 },
+export type CarModel = {
+  id: string;
+  name: string;
+  category: VehicleId;
+  seats?: string;
+  specs?: string[];
+  variants: { label: string; color: string; image: StaticImageData }[];
+};
+
+// The actual cars in the fleet. Multiple variants = available colors.
+export const models: CarModel[] = [
+  {
+    id: "toyota-vios",
+    name: "Toyota Vios",
+    category: "sedan",
+    variants: [
+      { label: "Black", color: "#16181d", image: viosBlack },
+      { label: "Blue", color: "#22344f", image: viosBlue },
+      { label: "Green", color: "#4d5a3c", image: viosGreen },
+      { label: "Silver · AT 2021", color: "#c4c8cc", image: viosSilver },
+    ],
+  },
+  { id: "toyota-avanza", name: "Toyota Avanza", category: "mpv", variants: [{ label: "Black", color: "#16181d", image: avanza }] },
+  { id: "nissan-livina", name: "Nissan Livina", category: "mpv", variants: [{ label: "Silver", color: "#c4c8cc", image: livina }] },
+  {
+    id: "toyota-innova",
+    name: "Toyota Innova",
+    category: "mpv",
+    variants: [
+      { label: "White", color: "#e8e9eb", image: innovaWhite },
+      { label: "Red", color: "#5a1f2b", image: innovaRed },
+    ],
+  },
+  { id: "toyota-fortuner", name: "Toyota Fortuner G", category: "suv", variants: [{ label: "White", color: "#f2f2f2", image: fortuner }] },
+  { id: "mitsubishi-montero-sport", name: "Mitsubishi Montero Sport", category: "suv", variants: [{ label: "White", color: "#f2f2f2", image: montero }] },
+  { id: "nissan-terra", name: "Nissan Terra", category: "suv", variants: [{ label: "White", color: "#f2f2f2", image: terra }] },
+  { id: "toyota-hilux", name: "Toyota Hilux", category: "suv", seats: "5 seats", specs: ["Pickup"], variants: [{ label: "Orange", color: "#c58a35", image: hilux }] },
+  {
+    id: "toyota-hiace-commuter",
+    name: "Toyota Hiace Commuter Deluxe",
+    category: "van",
+    specs: ["2023", "Manual"],
+    variants: [{ label: "Silver", color: "#c4c8cc", image: commuter }],
+  },
+  {
+    id: "toyota-hiace-gl-grandia",
+    name: "Toyota Hiace GL Grandia",
+    category: "van",
+    specs: ["2023", "Automatic"],
+    variants: [{ label: "Black", color: "#16181d", image: grandia }],
+  },
+  { id: "nissan-urvan", name: "Nissan Urvan", category: "van", variants: [{ label: "Gray", color: "#4b4f55", image: urvan }] },
 ];
 
-export const overtimeRate = 80;
-
-// Driver fee used by the trip estimator for each rental route (null = quoted on request).
-export const driverFeeByRoute: Record<RouteId, number | null> = {
-  city: 500,
-  adn: 800,
-  ags: 800,
-  sdn: 800,
-  sds: 1000,
-  cdo: null,
-  dav: null,
-};
+export const driverRate = 1000; // PHP per day
 
 export const peso = (n: number, decimals = 0) =>
   "₱" + n.toLocaleString("en-PH", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
-export const startingRate = Math.min(...fleet.map((v) => v.rates.city));
+/** Formats a rate, or "On request" when there is no fixed rate. */
+export const rateText = (n: number | null, decimals = 0) => (n == null ? "On request" : peso(n, decimals));
 
-/** Trip estimate used by both the estimator and the booking form. */
-export function estimateTrip(vehicleId: VehicleId, routeId: RouteId, days: number, withDriver: boolean) {
+export const startingRate = Math.min(...fleet.flatMap((v) => (v.rates.butuan == null ? [] : [v.rates.butuan])));
+
+/** Trip estimate used by both the estimator and the booking form. total is null when the rate is on request. */
+export function estimateTrip(vehicleId: VehicleId, zoneId: ZoneId, days: number, withDriver: boolean) {
   const vehicle = fleet.find((v) => v.id === vehicleId)!;
-  const dailyRate = vehicle.rates[routeId];
-  const driverRate = driverFeeByRoute[routeId];
-  const rental = dailyRate * days;
-  const driver = withDriver && driverRate ? driverRate * days : 0;
-  return { vehicle, dailyRate, driverRate, rental, driver, total: rental + driver };
+  const dailyRate = vehicle.rates[zoneId];
+  const rental = dailyRate == null ? null : dailyRate * days;
+  const driver = withDriver ? driverRate * days : 0;
+  return { vehicle, dailyRate, rental, driver, total: rental == null ? null : rental + driver };
 }

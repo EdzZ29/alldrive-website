@@ -1,6 +1,6 @@
 import { ArrowUpRight, Clock, MapPin, Navigation, Phone } from "lucide-react";
 import { nav, site } from "@/lib/site";
-import { FacebookIcon, GoogleIcon, Logo, MessengerIcon } from "./brand";
+import { FacebookIcon, GmailIcon, GoogleIcon, Logo, MessengerIcon } from "./brand";
 import { Year } from "./year";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export function Contact() {
       external: false,
     })),
     { icon: MessengerIcon, label: "Messenger", value: "Chat with us", href: site.messenger, external: true },
+    { icon: GmailIcon, label: "Email us", value: site.email, href: `mailto:${site.email}`, external: false },
     {
       icon: Navigation,
       label: "Get directions",
@@ -117,8 +118,9 @@ export function Footer() {
               {[
                 { href: site.facebook, label: "AllDrive Rent a Car Butuan on Facebook", Icon: FacebookIcon },
                 { href: site.messenger, label: "Message AllDrive on Messenger", Icon: MessengerIcon },
+                { href: `mailto:${site.email}`, label: `Email AllDrive at ${site.email}`, Icon: GmailIcon, mail: true },
                 { href: site.reviewUrl, label: "Leave AllDrive a Google review", Icon: GoogleIcon },
-              ].map(({ href, label, Icon }) => (
+              ].map(({ href, label, Icon, mail }) => (
                 <Button
                   key={href}
                   asChild
@@ -126,7 +128,12 @@ export function Footer() {
                   size="icon-xl"
                   className="border-white/15 bg-transparent text-white/70 hover:-translate-y-0.5 hover:border-brand hover:bg-brand hover:text-ink"
                 >
-                  <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}>
+                  <a
+                    href={href}
+                    {...(mail ? {} : { target: "_blank", rel: "noopener noreferrer" })}
+                    aria-label={label}
+                    title={label}
+                  >
                     <Icon />
                   </a>
                 </Button>

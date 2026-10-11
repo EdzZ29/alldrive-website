@@ -38,6 +38,19 @@ export function GoogleIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** The multicolor Gmail "M". */
+export function GmailIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden="true" {...props}>
+      <path fill="#4CAF50" d="M45 16.2l-5 2.75-5 4.75V40h7c1.66 0 3-1.34 3-3V16.2z" />
+      <path fill="#1E88E5" d="M3 16.2l3.61 1.71L13 23.7V40H6c-1.66 0-3-1.34-3-3V16.2z" />
+      <path fill="#E53935" d="M35 11.2 24 19.45 13 11.2 12 17l1 6.7 11 8.25 11-8.25 1-6.7z" />
+      <path fill="#C62828" d="M3 12.3v3.9l10 7.5V11.2L9.88 8.86A4.3 4.3 0 0 0 7.3 8C4.92 8 3 9.92 3 12.3z" />
+      <path fill="#FBC02D" d="M45 12.3v3.9l-10 7.5V11.2l3.12-2.34A4.3 4.3 0 0 1 40.7 8C43.08 8 45 9.92 45 12.3z" />
+    </svg>
+  );
+}
+
 export function MessengerIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>

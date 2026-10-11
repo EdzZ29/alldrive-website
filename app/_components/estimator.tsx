@@ -16,15 +16,15 @@ import {
   Truck,
   UserCheck,
 } from "lucide-react";
-import { estimateTrip, fleet, peso, routes, site, type RouteId, type VehicleId } from "@/lib/site";
+import { driverRate, estimateTrip, findPlace, fleet, peso, site, zones, type VehicleId } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SectionHeading } from "./section-heading";
 import { MessengerIcon } from "./brand";
 import { BookingDialog } from "./booking-dialog";
+import { DestinationSelect } from "./destination-select";
 
 const vehicleIcons: Record<VehicleId, typeof CarFront> = {
   sedan: CarTaxiFront,
@@ -61,17 +61,18 @@ function useTween(value: number, duration = 500) {
 export function Estimator() {
   const [mode, setMode] = useState<"self" | "driver">("self");
   const [vehicleId, setVehicleId] = useState<VehicleId>("mpv");
-  const [routeId, setRouteId] = useState<RouteId>("city");
+  const [placeId, setPlaceId] = useState("butuan-city");
   const [days, setDays] = useState(1);
 
   const withDriver = mode === "driver";
-  const route = routes.find((r) => r.id === routeId)!;
-  const { vehicle, driverRate, rental, driver, total } = estimateTrip(vehicleId, routeId, days, withDriver);
-  const shownTotal = useTween(total);
+  const place = findPlace(placeId);
+  const zone = zones.find((z) => z.id === place.zone)!;
+  const { vehicle, dailyRate, rental, driver, total } = estimateTrip(vehicleId, place.zone, days, withDriver);
+  const shownTotal = useTween(total ?? 0);
 
   const message =
     `Hi ${site.name}! I'd like to book a ${vehicle.name} (${withDriver ? "with driver" : "self-drive"}) ` +
-    `for ${route.long}, ${days} day${days > 1 ? "s" : ""}. Estimated total: ${peso(total)}. Is it available?`;
+    `for ${place.name}, ${days} day${days > 1 ? "s" : ""}.${total == null ? "" : ` Estimated total: ${peso(total)}.`} Is it available?`;
 
   return (
     <section id="book" className="relative overflow-hidden bg-ink py-24 text-white sm:py-32">
@@ -166,25 +167,13 @@ export function Estimator() {
             <div className="mt-7 grid gap-5 sm:grid-cols-[1fr_auto]">
               <div>
                 <p id="destination-label" className={fieldLabel}>Destination</p>
-                <Select value={routeId} onValueChange={(v) => setRouteId(v as RouteId)}>
-                  <SelectTrigger
-                    aria-labelledby="destination-label"
-                    className="mt-3 h-14! w-full rounded-2xl border-white/10 bg-ink-700 px-4 text-base font-semibold text-white focus-visible:border-brand [&>svg]:text-brand"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent position="popper" className="rounded-xl border border-white/10 bg-ink-800 text-white">
-                    {routes.map((r) => (
-                      <SelectItem
-                        key={r.id}
-                        value={r.id}
-                        className="rounded-lg py-2.5 text-sm focus:bg-brand/15 focus:text-white"
-                      >
-                        {r.long}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <DestinationSelect
+                  dark
+                  value={placeId}
+                  onValueChange={setPlaceId}
+                  aria-labelledby="destination-label"
+                  className="mt-3 h-14! rounded-2xl border-white/10 bg-ink-700 px-4 text-base font-semibold text-white focus-visible:border-brand [&>svg]:text-brand"
+                />
               </div>
 
               <div>
@@ -221,14 +210,18 @@ export function Estimator() {
               <dl className="space-y-2.5 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-white/60">
-                    Rental · {peso(vehicle.rates[routeId])} × {days} day{days > 1 ? "s" : ""}
+                    Rental · {dailyRate == null ? "rate on request" : `${peso(dailyRate)} × ${days} day${days > 1 ? "s" : ""}`}
                   </dt>
-                  <dd className="font-semibold tabular-nums">{peso(rental)}</dd>
+                  <dd className="font-semibold tabular-nums">{rental == null ? "Ask us" : peso(rental)}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-white/60">Rate zone</dt>
+                  <dd className="font-semibold">{zone.label}</dd>
                 </div>
                 {withDriver && (
                   <div className="flex justify-between">
-                    <dt className="text-white/60">Driver fee{driverRate ? ` · ${peso(driverRate)} × ${days}` : ""}</dt>
-                    <dd className="font-semibold tabular-nums">{driverRate ? peso(driver) : "Quoted on request"}</dd>
+                    <dt className="text-white/60">Driver fee · {peso(driverRate)} × {days}</dt>
+                    <dd className="font-semibold tabular-nums">{peso(driver)}</dd>
                   </div>
                 )}
               </dl>
@@ -240,11 +233,13 @@ export function Estimator() {
                     {withDriver ? `Driver's meals${days > 1 ? " & lodging" : ""} shouldered by renter.` : "Fuel not included."}
                   </p>
                 </div>
-                <p className="font-display text-4xl font-extrabold text-brand tabular-nums sm:text-5xl">{peso(shownTotal)}</p>
+                <p className="font-display text-4xl font-extrabold text-brand tabular-nums sm:text-5xl">
+                  {total == null ? <span className="text-2xl sm:text-3xl">On request</span> : peso(shownTotal)}
+                </p>
               </div>
             </div>
 
-            <BookingDialog defaults={{ vehicleId, routeId, days, mode }}>
+            <BookingDialog defaults={{ vehicleId, placeId, days, mode }}>
               <Button variant="brand" size="xl" className="group mt-5 h-16 w-full text-lg">
                 <CalendarCheck className="size-6!" />
                 Book now

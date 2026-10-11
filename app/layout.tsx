@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist } from "next/font/google";
 import { RevealObserver } from "./_components/reveal-observer";
-import { fleet, routes, site, startingRate } from "@/lib/site";
+import { Analytics } from "@vercel/analytics/next";
+import { driverRate, fleet, site, startingRate } from "@/lib/site";
 import "./globals.css";
 
 const geist = Geist({
@@ -107,19 +108,26 @@ const jsonLd = {
   hasOfferCatalog: {
     "@type": "OfferCatalog",
     name: "Car rental rates",
-    itemListElement: fleet.map((v) => ({
+    itemListElement: fleet.filter((v) => v.rates.butuan != null).map((v) => ({
       "@type": "Offer",
       name: `${v.name} rental (${v.seats})`,
       priceCurrency: "PHP",
-      price: v.rates.city,
+      price: v.rates.butuan,
       priceSpecification: {
         "@type": "UnitPriceSpecification",
-        price: v.rates.city,
+        price: v.rates.butuan,
         priceCurrency: "PHP",
-        unitText: `per day, ${routes[0].long}`,
+        unitText: "per day, within Butuan City",
       },
       itemOffered: { "@type": "Product", name: `${v.name}, ${v.seats}` },
-    })),
+    })).concat({
+      "@type": "Offer",
+      name: "Professional driver",
+      priceCurrency: "PHP",
+      price: driverRate,
+      priceSpecification: { "@type": "UnitPriceSpecification", price: driverRate, priceCurrency: "PHP", unitText: "per day" },
+      itemOffered: { "@type": "Product", name: "Professional driver service" },
+    }),
   },
 };
 
@@ -136,6 +144,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </noscript>
         {children}
         <RevealObserver />
+        <Analytics />
       </body>
     </html>
   );
