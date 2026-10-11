@@ -61,6 +61,10 @@ export const metadata: Metadata = {
   },
   category: "travel",
   formatDetection: { telephone: true },
+  // Google Search Console "HTML tag" verification code (only the content="..." value).
+  ...(process.env.GOOGLE_SITE_VERIFICATION && {
+    verification: { google: process.env.GOOGLE_SITE_VERIFICATION },
+  }),
 };
 
 export const viewport: Viewport = {

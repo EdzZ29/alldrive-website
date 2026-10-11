@@ -364,7 +364,7 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
 
         <EstimateBox label={`${model?.name ?? vehicle.short} · ${zone.label} · ${days || 1} day${days > 1 ? "s" : ""}${withDriver ? ` · driver ${peso(driverRate)}/day` : ""}`} total={total} />
 
-        <Button type="submit" variant="brand" size="xl" className="group h-14 w-full hover:translate-y-0">
+        <Button type="submit" variant="brand-light" size="xl" className="group h-14 w-full">
           <ClipboardCheck /> Review booking
           <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
         </Button>
@@ -399,7 +399,7 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
             <Button type="button" variant="outline" size="xl" disabled={sending} onClick={() => setStep("form")} className="rounded-2xl border-line font-bold">
               <Pencil /> Edit details
             </Button>
-            <Button type="button" variant="brand" size="xl" disabled={sending} onClick={confirm} className="hover:translate-y-0">
+            <Button type="button" variant="brand-light" size="xl" disabled={sending} onClick={confirm}>
               {sending ? <Loader2 className="animate-spin" /> : <Send />}
               {sending ? "Sending your booking…" : "Confirm Booking"}
             </Button>

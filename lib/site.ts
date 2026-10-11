@@ -27,7 +27,14 @@ export const site = {
   tagline: "Rent a Car in Butuan City, Caraga Region",
   description:
     "AllDrive Rent a Car Butuan: self-drive from ₱1,300/day or with a professional driver, open 24 hours. Toyota Vios, Innova, Fortuner, Hilux, Hiace and more for trips anywhere in Mindanao.",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000", // set NEXT_PUBLIC_SITE_URL to the live domain
+  // Live domain for SEO links, robots.txt and sitemap.xml. Set NEXT_PUBLIC_SITE_URL once a custom
+  // domain is connected; until then Vercel's production domain is used automatically.
+  url: (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL &&
+      `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`) ||
+    "http://localhost:3000"
+  ).replace(/\/+$/, ""),
   // Primary number, used for the main call/text buttons.
   phone: "0946 126 0177",
   phoneHref: "+639461260177",

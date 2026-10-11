@@ -20,6 +20,8 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         // AllDrive brand variants
         brand: "bg-primary font-bold text-primary-foreground hover:-translate-y-0.5 hover:bg-white",
+        // Same look, for white surfaces (a white hover would vanish there)
+        "brand-light": "bg-primary font-bold text-primary-foreground hover:bg-ink hover:text-white",
         ink: "bg-ink font-bold text-white hover:-translate-y-0.5 hover:bg-ink-700",
         white: "bg-white font-bold text-ink hover:-translate-y-0.5 hover:bg-white/90",
         glass:

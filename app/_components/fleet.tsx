@@ -122,7 +122,7 @@ function ModelCard({ model, index }: { model: CarModel; index: number }) {
               <ChevronDown className="size-4 transition-transform duration-500 group-data-[state=open]/rates:rotate-180" />
             </CollapsibleTrigger>
             <BookingDialog defaults={{ vehicleId: model.category, modelId: model.id }}>
-              <Button variant="brand" size="md" className="hover:translate-y-0">
+              <Button variant="brand-light" size="md">
                 <CalendarCheck /> Book
               </Button>
             </BookingDialog>

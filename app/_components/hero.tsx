@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { ArrowRight, CarFront, ChevronDown } from "lucide-react";
+import { ArrowRight, CarFront, ChevronDown, MapPin } from "lucide-react";
 import fleetImg from "@/public/images/hero-fleet.jpg";
 import { models, peso, places, site, startingRate } from "@/lib/site";
 import { Badge } from "@/components/ui/badge";
@@ -23,13 +23,22 @@ export function Hero() {
       <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center px-5 text-center">
         <Badge
           variant="outline"
-          className="fade-up h-auto gap-2.5 border-white/15 bg-ink/60 py-1.5 pr-4 pl-2 text-xs font-semibold tracking-wide text-white/85 backdrop-blur-md sm:text-sm"
+          className="fade-up group h-auto gap-3 border-white/15 bg-ink/70 p-1 pr-4 text-xs font-semibold text-white/85 backdrop-blur-md transition-colors hover:border-brand/60 sm:text-sm"
         >
-          <span className="relative flex size-2.5">
-            <span className="absolute inline-flex size-full animate-ping-slow rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400" />
+          <span className="flex items-center gap-2 rounded-full bg-brand px-3 py-1.5 text-[11px] font-extrabold tracking-[0.14em] text-ink uppercase sm:text-xs">
+            <span className="relative flex size-3 rounded-full bg-ink p-0.5">
+              <span className="absolute inset-0 animate-ping-slow rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative size-full animate-blink rounded-full bg-emerald-400" />
+            </span>
+            Open 24/7
           </span>
-          {site.hours} · {site.address.locality}
+          <span className="flex items-center gap-1.5">
+            <MapPin className="size-3.5 text-brand transition-transform duration-300 group-hover:-translate-y-0.5 sm:size-4" />
+            <span>
+              {site.address.locality}
+              <span className="hidden text-white/50 sm:inline">, {site.address.region}</span>
+            </span>
+          </span>
         </Badge>
 
         <h1 className="mt-6 font-display text-[clamp(3.4rem,11vw,9.5rem)] leading-[0.88] font-extrabold tracking-[-0.035em]">
