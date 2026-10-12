@@ -1,12 +1,19 @@
 "use server";
 
 import nodemailer from "nodemailer";
-import { buildBookingEmail, type BookingDetails } from "@/lib/booking-email";
-import { driverRate, estimateTrip, fleet, models, peso, places, zones, type VehicleId } from "@/lib/site";
+import { buildBookingEmail, buildCustomerEmail, type BookingDetails } from "@/lib/booking-email";
+import { buildCustomerSms, buildOwnerSms, sendSms, toPhMobile } from "@/lib/booking-sms";
+import { driverRate, estimateTrip, fleet, models, peso, places, site, zones, type VehicleId } from "@/lib/site";
 
 export type BookingResult = { ok: true } | { ok: false; error: string };
 
 const BOOKING_TO = process.env.BOOKING_EMAIL_TO || "alldrivebtc@gmail.com";
+// Team numbers that get a text for every booking (defaults to the call numbers on the site).
+const SMS_TO = (process.env.BOOKING_SMS_TO || site.phones.map((p) => p.display).join(","))
+  .split(",")
+  .map((n) => toPhMobile(n))
+  .filter((n): n is string => n !== null);
+const SMS_CONFIRM_CUSTOMER = process.env.BOOKING_SMS_CONFIRM_CUSTOMER !== "false";
 
 const str = (data: FormData, key: string, max = 200) => String(data.get(key) ?? "").trim().slice(0, max);
 
@@ -27,6 +34,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
 
   const name = str(data, "name", 100);
   const contact = str(data, "contact", 30);
+  const customerEmail = str(data, "email", 120);
   const address = str(data, "address");
   const work = str(data, "work");
   const purpose = str(data, "purpose", 500);
@@ -43,6 +51,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   const missing = [
     !name && "name",
     contact.replace(/\D/g, "").length < 7 && "contact number",
+    customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) && "email address",
     !address && "address",
     !work && "work place / business",
     !place && "destination",
@@ -67,6 +76,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   const details: BookingDetails = {
     name,
     contact,
+    email: customerEmail,
     address,
     work,
     destination: place.name,
@@ -83,18 +93,54 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
 
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
-  if (!user || !pass) {
-    console.error("Booking email not sent: set GMAIL_USER and GMAIL_APP_PASSWORD.");
+  const smsKey = process.env.SEMAPHORE_API_KEY;
+  const smsSender = process.env.SEMAPHORE_SENDER_NAME || undefined;
+  if (!user || !pass) console.error("Booking email not sent: set GMAIL_USER and GMAIL_APP_PASSWORD.");
+  if (!smsKey) console.error("Booking SMS not sent: set SEMAPHORE_API_KEY.");
+  if ((!user || !pass) && !smsKey) {
     return { ok: false, error: "Online booking is temporarily unavailable. Please text or message us instead." };
   }
 
-  try {
-    const transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
-    const { subject, text, html } = buildBookingEmail(details);
-    await transporter.sendMail({ from: `"AllDrive Website" <${user}>`, to: BOOKING_TO, subject, text, html });
-    return { ok: true };
-  } catch (err) {
-    console.error("Booking email failed:", err);
+  const transporter = user && pass ? nodemailer.createTransport({ service: "gmail", auth: { user, pass } }) : null;
+
+  // Email and team SMS go out together; the booking counts as received if either one arrives.
+  const [email, sms] = await Promise.allSettled([
+    transporter
+      ? transporter.sendMail({
+          from: `"AllDrive Website" <${user}>`,
+          to: BOOKING_TO,
+          // "Reply" in Gmail goes straight to the customer when they left an email.
+          ...(customerEmail && { replyTo: customerEmail }),
+          ...buildBookingEmail(details),
+        })
+      : Promise.reject(new Error("Gmail not configured")),
+    smsKey ? sendSms(smsKey, SMS_TO, buildOwnerSms(details), smsSender) : Promise.reject(new Error("SMS not configured")),
+  ]);
+  if (email.status === "rejected" && transporter) console.error("Booking email failed:", email.reason);
+  if (sms.status === "rejected" && smsKey) console.error("Booking SMS failed:", sms.reason);
+  if (email.status === "rejected" && sms.status === "rejected") {
     return { ok: false, error: "We couldn't send your booking right now. Please text or message us instead." };
   }
+
+  // Let the customer know it arrived. A failure here shouldn't undo a booking the team already has.
+  const callNumber = site.phones[0].display;
+  const customerNumber = toPhMobile(contact);
+  const confirmations = await Promise.allSettled([
+    smsKey && SMS_CONFIRM_CUSTOMER && customerNumber
+      ? sendSms(smsKey, [customerNumber], buildCustomerSms(details, callNumber), smsSender)
+      : null,
+    transporter && customerEmail
+      ? transporter.sendMail({
+          from: `"AllDrive Rent a Car Butuan" <${user}>`,
+          to: customerEmail,
+          replyTo: BOOKING_TO,
+          ...buildCustomerEmail(details, callNumber),
+        })
+      : null,
+  ]);
+  confirmations.forEach((r, i) => {
+    if (r.status === "rejected") console.error(`Customer confirmation ${i ? "email" : "SMS"} failed:`, r.reason);
+  });
+
+  return { ok: true };
 }

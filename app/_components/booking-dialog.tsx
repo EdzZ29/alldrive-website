@@ -119,6 +119,7 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
     return {
       name: get("name"),
       contact: get("contact"),
+      email: get("email"),
       address: get("address"),
       work: get("work"),
       destination: destination.name,
@@ -288,12 +289,26 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
               className={inputClass}
             />
           </Field>
-          <Field id="bk-address" label="Address">
-            <Input id="bk-address" name="address" required maxLength={200} autoComplete="street-address" placeholder="Barangay, City" className={inputClass} />
+          <Field id="bk-email" label="Email" hint=" (optional)">
+            <Input
+              id="bk-email"
+              name="email"
+              type="email"
+              inputMode="email"
+              maxLength={120}
+              autoComplete="email"
+              placeholder="you@example.com"
+              className={inputClass}
+            />
           </Field>
           <Field id="bk-work" label="Work Place / Business">
             <Input id="bk-work" name="work" required maxLength={200} autoComplete="organization" placeholder="Company or business name" className={inputClass} />
           </Field>
+          <div className="sm:col-span-2">
+            <Field id="bk-address" label="Address">
+              <Input id="bk-address" name="address" required maxLength={200} autoComplete="street-address" placeholder="Barangay, City" className={inputClass} />
+            </Field>
+          </div>
 
           <Field id="bk-route" label="Destination">
             <DestinationSelect id="bk-route" value={placeId} onValueChange={setPlaceId} className={`${inputClass} h-11!`} />
