@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, CarFront } from "lucide-react";
-import { models, peso, quoteHref, startingRate } from "@/lib/site";
+import { fleetSizeText, peso, quoteHref, startingRate } from "@/lib/site";
 import { pageMetadata } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "../_components/page-hero";
@@ -10,7 +10,7 @@ import { Contact } from "../_components/contact";
 
 export const metadata = pageMetadata({
   title: "Our Fleet: Cars, SUVs & Vans for Rent in Butuan City",
-  description: `Browse all ${models.length} AllDrive rental cars in Butuan City: Toyota Vios, Innova, Avanza, Fortuner, Montero Sport, Hilux, Hiace and more. Self-drive from ${peso(startingRate)}/day or with a driver.`,
+  description: `Browse ${fleetSizeText} AllDrive rental cars in Butuan City: Toyota Vios, Innova, Avanza, Fortuner, Montero Sport, Hilux, Navara, Triton, Hiace and more. Self-drive from ${peso(startingRate)}/day or with a driver.`,
   path: "/fleet",
 });
 
@@ -31,7 +31,7 @@ export default function FleetPage() {
           </Button>
         }
       >
-        {models.length} well-kept cars, from city sedans to 15-seat vans. Self-drive from {peso(startingRate)} a day, or
+        {fleetSizeText} well-kept cars, from city sedans to 15-seat vans. Self-drive from {peso(startingRate)} a day, or
         add a professional driver for any trip across Mindanao.
       </PageHero>
       <Fleet />

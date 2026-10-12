@@ -11,6 +11,8 @@ import fortuner from "@/public/images/fleet/toyota-fortuner.webp";
 import montero from "@/public/images/fleet/mitsubishi-montero-sport.webp";
 import terra from "@/public/images/fleet/nissan-terra.webp";
 import hilux from "@/public/images/fleet/toyota-hilux.webp";
+import navara from "@/public/images/fleet/nissan-navara-ve.webp";
+import triton from "@/public/images/fleet/mitsubishi-triton.webp";
 import commuter from "@/public/images/fleet/toyota-hiace-commuter.webp";
 import grandia from "@/public/images/fleet/toyota-hiace-gl-grandia.webp";
 import urvan from "@/public/images/fleet/nissan-urvan.webp";
@@ -243,7 +245,7 @@ export const fleet: Vehicle[] = [
     id: "suv",
     name: "SUV & Pickup",
     short: "SUV & Pickup",
-    seats: "5-7 seats",
+    seats: "5-8 seats",
     blurb: "High clearance and torque for provincial roads and long hauls.",
     tags: ["High clearance", "Long trips"],
     rates: { butuan: 2500, caraga: 3000, "cdo-davao": 3500, outside: 4000 },
@@ -287,16 +289,19 @@ export const models: CarModel[] = [
   {
     id: "toyota-innova",
     name: "Toyota Innova",
-    category: "mpv",
+    category: "suv",
+    seats: "7-8 seats",
     variants: [
       { label: "White", color: "#e8e9eb", image: innovaWhite },
       { label: "Red", color: "#5a1f2b", image: innovaRed },
     ],
   },
-  { id: "toyota-fortuner", name: "Toyota Fortuner G", category: "suv", variants: [{ label: "White", color: "#f2f2f2", image: fortuner }] },
-  { id: "mitsubishi-montero-sport", name: "Mitsubishi Montero Sport", category: "suv", variants: [{ label: "White", color: "#f2f2f2", image: montero }] },
-  { id: "nissan-terra", name: "Nissan Terra", category: "suv", variants: [{ label: "White", color: "#f2f2f2", image: terra }] },
+  { id: "toyota-fortuner", name: "Toyota Fortuner G", category: "suv", seats: "7 seats", variants: [{ label: "White", color: "#f2f2f2", image: fortuner }] },
+  { id: "mitsubishi-montero-sport", name: "Mitsubishi Montero Sport", category: "suv", seats: "7 seats", variants: [{ label: "White", color: "#f2f2f2", image: montero }] },
+  { id: "nissan-terra", name: "Nissan Terra", category: "suv", seats: "7 seats", variants: [{ label: "White", color: "#f2f2f2", image: terra }] },
   { id: "toyota-hilux", name: "Toyota Hilux", category: "suv", seats: "5 seats", specs: ["Pickup"], variants: [{ label: "Orange", color: "#c58a35", image: hilux }] },
+  { id: "nissan-navara-ve", name: "Nissan Navara VE", category: "suv", seats: "5 seats", specs: ["Pickup"], variants: [{ label: "Silver", color: "#c4c8cc", image: navara }] },
+  { id: "mitsubishi-triton", name: "Mitsubishi Triton", category: "suv", seats: "5 seats", specs: ["Pickup"], variants: [{ label: "Orange", color: "#d06a1f", image: triton }] },
   {
     id: "toyota-hiace-commuter",
     name: "Toyota Hiace Commuter Deluxe",
@@ -313,6 +318,10 @@ export const models: CarModel[] = [
   },
   { id: "nissan-urvan", name: "Nissan Urvan", category: "van", variants: [{ label: "Gray", color: "#4b4f55", image: urvan }] },
 ];
+
+/** Total cars in the fleet (several units per model), shown in headings and stats. */
+export const fleetSize = 30;
+export const fleetSizeText = `${fleetSize}+`;
 
 export const modelPath = (id: string) => `/fleet/${id}`;
 export const findModel = (id: string) => models.find((m) => m.id === id);

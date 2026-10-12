@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { CalendarCheck, Check, ChevronDown, Snowflake, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fleet, modelPath, models, rateText, zones, type CarModel, type VehicleId } from "@/lib/site";
+import { fleet, fleetSizeText, modelPath, models, rateText, zones, type CarModel, type VehicleId } from "@/lib/site";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -161,7 +161,7 @@ export function Fleet() {
       <div className="mx-auto max-w-7xl px-5">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
           <SectionHeading index="01" eyebrow="Our fleet" title={<>Pick your ride.<br />We handle the rest.</>}>
-            {models.length} well-kept cars, from the Toyota Vios to the Hiace GL Grandia. Sanitized and ready for any
+            {fleetSizeText} well-kept cars, from the Toyota Vios to the Hiace GL Grandia. Sanitized and ready for any
             trip across Mindanao.
           </SectionHeading>
 

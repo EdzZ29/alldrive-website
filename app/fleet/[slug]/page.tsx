@@ -241,7 +241,7 @@ export default async function ModelPage({ params }: PageProps<"/fleet/[slug]">) 
             <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">More cars you might like</h2>
             <Button asChild variant="outline-ink" size="md" className="group w-fit">
               <Link href="/fleet">
-                View all {models.length} cars
+                View all cars
                 <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
             </Button>
