@@ -9,6 +9,7 @@ import { WhyUs } from "./_components/why-us";
 import { Contact } from "./_components/contact";
 import { Faq } from "./_components/faq";
 import { TrustedBy } from "./_components/trusted-by";
+import { CustomersGallery } from "./_components/customers-gallery";
 import { site } from "@/lib/site";
 import { pageMetadata } from "@/lib/seo";
 
@@ -20,6 +21,7 @@ export default function Home() {
       <Hero />
       <Marquee />
       <TrustedBy />
+      <CustomersGallery />
       <Fleet />
       <Estimator />
       <Rates />
