@@ -1,4 +1,4 @@
-import { driverRate, fleet, models, peso, site, startingRate } from "./site";
+import { driverRate, fleet, models, peso, startingRate } from "./site";
 
 const rate = (id: string) => {
   const r = fleet.find((v) => v.id === id)?.rates.butuan;
@@ -42,11 +42,11 @@ export const faqs: { q: string; a: string }[] = [
   },
   {
     q: "Is AllDrive Rent a Car Butuan open 24 hours?",
-    a: `Yes, we are open 24 hours, every day. Call or text ${site.phones.map((p) => `${p.display} (${p.network})`).join(" or ")}, or message us on Facebook Messenger any time.`,
+    a: "Yes, we are open 24 hours, every day. Message us on WhatsApp, Viber or Facebook Messenger any time.",
   },
   {
     q: "How do I book a rental car?",
-    a: "Use the Book now button on our website, call or text us, or send us a message on Facebook Messenger. Share your name, destination, date and time, preferred car and number of days, and we will confirm your booking.",
+    a: "Use the Book now button on our website, or message us on WhatsApp, Viber or Facebook Messenger. Share your name, destination, date and time, preferred car and number of days, and we will confirm your booking.",
   },
   {
     q: "Do you have weekly or monthly car rental?",

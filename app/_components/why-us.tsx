@@ -1,7 +1,8 @@
 import Image from "next/image";
-import { BadgeCheck, CarFront, Clock, MessagesSquare, Phone, Receipt, ShieldCheck, Sparkles, Wallet } from "lucide-react";
+import { BadgeCheck, CarFront, Clock, MessagesSquare, Receipt, ShieldCheck, Sparkles, Wallet } from "lucide-react";
 import brandImg from "@/public/images/alldrive.jpg";
-import { fleetSize, places, site, startingRate } from "@/lib/site";
+import { fleetSize, places, site, startingRate, whatsappLink } from "@/lib/site";
+import { ViberIcon, WhatsAppIcon } from "./brand";
 import { CountUp } from "./count-up";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,17 +34,16 @@ export function WhyUs() {
               any hour of the day.
             </SectionHeading>
             <div data-reveal style={{ "--d": "240ms" } as React.CSSProperties} className="mt-8 flex flex-col gap-3 sm:flex-row">
-              {site.phones.map((p) => (
-                <Button key={p.href} asChild variant="ink" size="xl" className="group">
-                  <a href={`tel:${p.href}`}>
-                    <Phone className="text-brand transition-transform duration-300 group-hover:-rotate-12" />
-                    <span className="tabular-nums">{p.display}</span>
-                    <Badge variant="secondary" className="rounded-md bg-white/10 text-[10px] tracking-wider text-white/70 uppercase">
-                      {p.network}
-                    </Badge>
-                  </a>
-                </Button>
-              ))}
+              <Button asChild variant="ink" size="xl" className="group">
+                <a href={whatsappLink()} target="_blank" rel="noopener noreferrer">
+                  <WhatsAppIcon className="transition-transform duration-300 group-hover:-rotate-12" /> Chat on WhatsApp
+                </a>
+              </Button>
+              <Button asChild variant="outline-ink" size="xl" className="group">
+                <a href={site.viber}>
+                  <ViberIcon className="transition-transform duration-300 group-hover:-rotate-12" /> Chat on Viber
+                </a>
+              </Button>
             </div>
           </div>
           <div data-reveal="zoom" className="group relative aspect-[4/3] overflow-hidden rounded-[2rem] bg-ink">

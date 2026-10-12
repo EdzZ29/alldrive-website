@@ -9,20 +9,18 @@ import {
   Calculator,
   CalendarCheck,
   KeyRound,
-  MessageSquareText,
   Minus,
-  Phone,
   Plus,
   Truck,
   UserCheck,
 } from "lucide-react";
-import { driverRate, estimateTrip, findPlace, fleet, peso, site, zones, type VehicleId } from "@/lib/site";
+import { driverRate, estimateTrip, findPlace, fleet, peso, site, whatsappLink, zones, type VehicleId } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SectionHeading } from "./section-heading";
-import { MessengerIcon } from "./brand";
+import { MessengerIcon, ViberIcon, WhatsAppIcon } from "./brand";
 import { BookingDialog } from "./booking-dialog";
 import { DestinationSelect } from "./destination-select";
 
@@ -249,8 +247,8 @@ export function Estimator() {
 
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
               <Button asChild variant="glass" size="xl" className="border-white/15 bg-transparent">
-                <a href={`sms:${site.phoneHref}?&body=${encodeURIComponent(message)}`}>
-                  <MessageSquareText className="text-brand" /> Text us
+                <a href={whatsappLink(message)} target="_blank" rel="noopener noreferrer">
+                  <WhatsAppIcon /> WhatsApp
                 </a>
               </Button>
               <Button asChild variant="glass" size="xl" className="border-white/15 bg-transparent">
@@ -259,8 +257,8 @@ export function Estimator() {
                 </a>
               </Button>
               <Button asChild variant="glass" size="xl" className="border-white/15 bg-transparent">
-                <a href={`tel:${site.phoneHref}`}>
-                  <Phone className="text-brand" /> Call us
+                <a href={site.viber}>
+                  <ViberIcon /> Viber
                 </a>
               </Button>
             </div>

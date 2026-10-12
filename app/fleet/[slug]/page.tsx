@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, CalendarCheck, Check, Clock, MapPinned, Phone, Plane, Snowflake, UserCheck, Users } from "lucide-react";
+import { ArrowRight, CalendarCheck, Check, Clock, MapPinned, Plane, Snowflake, UserCheck, Users } from "lucide-react";
 import {
   driverRate,
   findModel,
@@ -12,6 +12,7 @@ import {
   rateText,
   site,
   vehicleOf,
+  whatsappLink,
   zones,
   type CarModel,
 } from "@/lib/site";
@@ -20,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BookingDialog } from "../../_components/booking-dialog";
-import { MessengerIcon } from "../../_components/brand";
+import { MessengerIcon, ViberIcon, WhatsAppIcon } from "../../_components/brand";
 import { Contact } from "../../_components/contact";
 import { PageHero } from "../../_components/page-hero";
 import { ModelGallery } from "./model-gallery";
@@ -205,31 +206,32 @@ export default async function ModelPage({ params }: PageProps<"/fleet/[slug]">) 
                 </Button>
               </BookingDialog>
 
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {site.phones.map((p) => (
-                  <Button
-                    key={p.href}
-                    asChild
-                    variant="outline"
-                    size="md"
-                    className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white"
-                  >
-                    <a href={`tel:${p.href}`}>
-                      <Phone className="text-brand" /> {p.network}
-                    </a>
-                  </Button>
-                ))}
-              </div>
               <Button
                 asChild
                 variant="outline"
                 size="md"
-                className="mt-2 w-full border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white"
+                className="mt-3 w-full border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white"
               >
-                <a href={site.messenger} target="_blank" rel="noopener noreferrer">
-                  <MessengerIcon className="text-brand" /> Message us on Messenger
+                <a
+                  href={whatsappLink(`Hi AllDrive! I would like to rent the ${model.name}. Is it available?`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <WhatsAppIcon /> Ask about this car on WhatsApp
                 </a>
               </Button>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Button asChild variant="outline" size="md" className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white">
+                  <a href={site.viber}>
+                    <ViberIcon /> Viber
+                  </a>
+                </Button>
+                <Button asChild variant="outline" size="md" className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white">
+                  <a href={site.messenger} target="_blank" rel="noopener noreferrer">
+                    <MessengerIcon className="text-brand" /> Messenger
+                  </a>
+                </Button>
+              </div>
             </Card>
           </aside>
         </div>

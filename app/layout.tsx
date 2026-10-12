@@ -79,7 +79,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
   category: "travel",
-  formatDetection: { telephone: true },
+  formatDetection: { telephone: false },
   // Google Search Console "HTML tag" verification code (only the content="..." value).
   ...(process.env.GOOGLE_SITE_VERIFICATION && {
     verification: { google: process.env.GOOGLE_SITE_VERIFICATION },

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Plus } from "lucide-react";
 import { faqs } from "@/lib/faq";
-import { site } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "./section-heading";
 
@@ -17,8 +16,8 @@ export function Faq({ limit, showAllLink = false }: { limit?: number; showAllLin
       <div className="mx-auto grid max-w-7xl gap-12 px-5 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <SectionHeading index="08" eyebrow="FAQ" title="Car rental in Butuan, answered.">
-            Rates, drivers, airport pickups and trips across Mindanao. Still have a question? Call or text{" "}
-            {site.phone}, any time.
+            Rates, drivers, airport pickups and trips across Mindanao. Still have a question? Message us on WhatsApp,
+            any time.
           </SectionHeading>
           {showAllLink && (
             <Button asChild variant="outline-ink" size="md" className="group mt-8">

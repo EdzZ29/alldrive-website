@@ -31,18 +31,17 @@ export const site = {
   // Live domain for SEO links, robots.txt and sitemap.xml. Vercel serves the site on www
   // (alldrivebutuan.com redirects there), so that is the canonical address.
   url: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.alldrivebutuan.com").replace(/\/+$/, ""),
-  // Primary number, used for the main call/text buttons.
-  phone: "0946 126 0177",
+  // Phone numbers are NEVER shown on the page. They only go in the hidden business details
+  // Google reads (layout.tsx JSON-LD). Visitors contact us through WhatsApp, Viber or Messenger.
   phoneHref: "+639461260177",
   phones: [
-    { network: "Smart", display: "0946 126 0177", href: "+639461260177" },
-    { network: "Globe", display: "0956 227 5764", href: "+639562275764" },
+    { network: "Smart", href: "+639461260177" },
+    { network: "Globe", href: "+639562275764" },
   ],
   email: "alldrivebtc@gmail.com",
   messenger: "https://m.me/alldriverentacarbutuan",
-  // Direct chat on the Smart number.
-  chatNumber: "0946 126 0177",
-  whatsapp: "https://wa.me/639461260177",
+  // WhatsApp and Viber chats go to the Smart number.
+  whatsappNumber: "639461260177",
   viber: "viber://chat?number=%2B639461260177",
   facebook: "https://www.facebook.com/alldriverentacarbutuan",
   mapsUrl: `https://www.google.com/maps/place/?q=place_id:${googlePlaceId}`,
@@ -62,6 +61,12 @@ export const site = {
   hours: "Open 24 hours",
   areaServed: ["Butuan City", "Caraga", "Cagayan de Oro", "Davao City", "Mindanao"],
 } as const;
+
+export const defaultChatMessage = "Hi AllDrive! I would like to rent a car.";
+
+/** Opens a WhatsApp chat (app on phones, WhatsApp Web on computers) with a ready-made message. */
+export const whatsappLink = (message: string = defaultChatMessage) =>
+  `https://wa.me/${site.whatsappNumber}?text=${encodeURIComponent(message)}`;
 
 // From the Google Business listing. Update the count now and then.
 export const googleRating = { value: "5.0", count: 92 };

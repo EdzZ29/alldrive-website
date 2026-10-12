@@ -1,14 +1,15 @@
-import { Clock, MapPin, Navigation, Phone } from "lucide-react";
-import { site } from "@/lib/site";
+import { Clock, MapPin, Navigation } from "lucide-react";
+import { site, whatsappLink } from "@/lib/site";
 import { pageMetadata } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageHero } from "../_components/page-hero";
+import { WhatsAppIcon } from "../_components/brand";
 import { Contact } from "../_components/contact";
 
 export const metadata = pageMetadata({
   title: "Contact & Directions",
-  description: `Contact AllDrive Rent a Car Butuan, open 24 hours. Call or text ${site.phones.map((p) => `${p.display} (${p.network})`).join(" or ")}, message us on Messenger, or visit us at ${site.address.full}.`,
+  description: `Contact AllDrive Rent a Car Butuan, open 24 hours. Message us on WhatsApp, Viber or Facebook Messenger, or visit us at ${site.address.full}.`,
   path: "/contact",
 });
 
@@ -22,8 +23,8 @@ export default function ContactPage() {
         actions={
           <>
             <Button asChild variant="brand" size="xl">
-              <a href={`tel:${site.phoneHref}`}>
-                <Phone /> Call {site.phone}
+              <a href={whatsappLink()} target="_blank" rel="noopener noreferrer">
+                <WhatsAppIcon className="rounded-full bg-white p-0.5" /> Chat on WhatsApp
               </a>
             </Button>
             <Button asChild variant="glass" size="xl">
@@ -34,8 +35,8 @@ export default function ContactPage() {
           </>
         }
       >
-        We&apos;re open 24 hours in Butuan City. Call, text, email or message us on Messenger and we&apos;ll confirm your
-        booking fast.
+        We&apos;re open 24 hours in Butuan City. Message us on WhatsApp, Viber or Messenger, or send an email, and
+        we&apos;ll confirm your booking fast.
       </PageHero>
 
       <section className="bg-white py-20 sm:py-24">

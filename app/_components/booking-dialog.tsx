@@ -11,7 +11,6 @@ import {
   Copy,
   KeyRound,
   Loader2,
-  MessageSquareText,
   Pencil,
   Send,
   UserCheck,
@@ -19,7 +18,7 @@ import {
 import { submitBooking } from "@/app/actions/booking";
 import { bookingRows, type BookingDetails } from "@/lib/booking-email";
 import { cn } from "@/lib/utils";
-import { driverRate, estimateTrip, findPlace, fleet, models, peso, site, zones, type VehicleId } from "@/lib/site";
+import { driverRate, estimateTrip, findPlace, fleet, models, peso, site, whatsappLink, zones, type VehicleId } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,7 +43,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { MessengerIcon } from "./brand";
+import { MessengerIcon, WhatsAppIcon } from "./brand";
 import { DestinationSelect } from "./destination-select";
 
 type Mode = "self" | "driver";
@@ -153,7 +152,7 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
     });
   };
 
-  const sendVia = async (channel: "smart" | "globe" | "messenger") => {
+  const sendVia = async (channel: "whatsapp" | "messenger") => {
     if (!snapshot) return;
     const message = textMessage(detailsFrom(snapshot));
     if (channel === "messenger") {
@@ -166,26 +165,22 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
       window.open(site.messenger, "_blank", "noopener,noreferrer");
       return;
     }
-    const phone = site.phones.find((p) => p.network.toLowerCase() === channel) ?? site.phones[0];
-    window.location.assign(`sms:${phone.href}?&body=${encodeURIComponent(message)}`);
+    window.open(whatsappLink(message), "_blank", "noopener,noreferrer");
   };
 
   const altChannels = (
-    <div className="grid gap-2 sm:grid-cols-3">
-      {site.phones.map((p) => (
-        <Button
-          key={p.href}
-          type="button"
-          variant="outline"
-          onClick={() => sendVia(p.network.toLowerCase() as "smart" | "globe")}
-          className="h-auto flex-col gap-0 rounded-xl border-line py-2 font-bold"
-        >
-          <span className="flex items-center gap-1.5">
-            <MessageSquareText className="text-brand-600" /> Text {p.network}
-          </span>
-          <span className="text-[11px] font-medium text-muted-foreground tabular-nums">{p.display}</span>
-        </Button>
-      ))}
+    <div className="grid gap-2 sm:grid-cols-2">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => sendVia("whatsapp")}
+        className="h-auto flex-col gap-0 rounded-xl border-line py-2 font-bold"
+      >
+        <span className="flex items-center gap-1.5">
+          <WhatsAppIcon /> WhatsApp
+        </span>
+        <span className="text-[11px] font-medium text-muted-foreground">Sends your details</span>
+      </Button>
       <Button
         type="button"
         variant="outline"

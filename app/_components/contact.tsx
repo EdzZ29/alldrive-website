@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ArrowUpRight, Clock, MapPin, Navigation, Phone } from "lucide-react";
-import { nav, quoteHref, site } from "@/lib/site";
+import { ArrowUpRight, Clock, MapPin, Navigation } from "lucide-react";
+import { nav, quoteHref, site, whatsappLink } from "@/lib/site";
 import { FacebookIcon, GmailIcon, GoogleIcon, Logo, MessengerIcon, ViberIcon, WhatsAppIcon } from "./brand";
 import { Year } from "./year";
 import { Badge } from "@/components/ui/badge";
@@ -10,16 +10,9 @@ import { Separator } from "@/components/ui/separator";
 
 export function Contact() {
   const channels = [
-    ...site.phones.map((p) => ({
-      icon: Phone,
-      label: `Call or text · ${p.network}`,
-      value: p.display,
-      href: `tel:${p.href}`,
-      external: false,
-    })),
+    { icon: WhatsAppIcon, label: "WhatsApp", value: "Message us now", href: whatsappLink(), external: true },
+    { icon: ViberIcon, label: "Viber", value: "Chat with us", href: site.viber, external: false },
     { icon: MessengerIcon, label: "Messenger", value: "Chat with us", href: site.messenger, external: true },
-    { icon: WhatsAppIcon, label: "WhatsApp", value: site.chatNumber, href: site.whatsapp, external: true },
-    { icon: ViberIcon, label: "Viber", value: site.chatNumber, href: site.viber, external: false },
     { icon: GmailIcon, label: "Email us", value: site.email, href: `mailto:${site.email}`, external: false },
     {
       icon: Navigation,
@@ -120,9 +113,9 @@ export function Footer() {
             <div className="mt-6 flex gap-2">
               {[
                 { href: site.facebook, label: "AllDrive Rent a Car Butuan on Facebook", Icon: FacebookIcon },
+                { href: whatsappLink(), label: "Chat with AllDrive on WhatsApp", Icon: WhatsAppIcon },
+                { href: site.viber, label: "Chat with AllDrive on Viber", Icon: ViberIcon, sameTab: true },
                 { href: site.messenger, label: "Message AllDrive on Messenger", Icon: MessengerIcon },
-                { href: site.whatsapp, label: `Chat with AllDrive on WhatsApp (${site.chatNumber})`, Icon: WhatsAppIcon },
-                { href: site.viber, label: `Chat with AllDrive on Viber (${site.chatNumber})`, Icon: ViberIcon, sameTab: true },
                 { href: `mailto:${site.email}`, label: `Email AllDrive at ${site.email}`, Icon: GmailIcon, sameTab: true },
                 { href: site.reviewUrl, label: "Leave AllDrive a Google review", Icon: GoogleIcon },
               ].map(({ href, label, Icon, sameTab }) => (
@@ -147,16 +140,21 @@ export function Footer() {
           </div>
 
           <div className="lg:col-span-3">
-            <p className="text-xs font-bold tracking-[0.2em] text-white/40 uppercase">Call or text</p>
+            <p className="text-xs font-bold tracking-[0.2em] text-white/40 uppercase">Message us</p>
             <ul className="mt-5 space-y-3">
-              {site.phones.map((p) => (
-                <li key={p.href}>
-                  <a href={`tel:${p.href}`} className="group flex items-center gap-3 text-white/80 transition hover:text-brand">
-                    <Phone className="size-4 text-brand" />
-                    <span className="font-semibold tabular-nums">{p.display}</span>
-                    <Badge variant="secondary" className="rounded-md bg-white/10 text-[10px] font-bold tracking-wider text-white/60 uppercase">
-                      {p.network}
-                    </Badge>
+              {[
+                { href: whatsappLink(), label: "Chat on WhatsApp", Icon: WhatsAppIcon, newTab: true },
+                { href: site.viber, label: "Chat on Viber", Icon: ViberIcon, newTab: false },
+                { href: site.messenger, label: "Chat on Messenger", Icon: MessengerIcon, newTab: true },
+              ].map(({ href, label, Icon, newTab }) => (
+                <li key={label}>
+                  <a
+                    href={href}
+                    {...(newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    className="group flex items-center gap-3 font-semibold text-white/80 transition hover:text-brand"
+                  >
+                    <Icon className="size-5 text-brand transition-transform duration-300 group-hover:-rotate-8" />
+                    {label}
                   </a>
                 </li>
               ))}

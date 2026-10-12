@@ -3,13 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, Menu, Phone } from "lucide-react";
+import { ArrowUpRight, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { nav, site } from "@/lib/site";
+import { nav, site, whatsappLink } from "@/lib/site";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Logo } from "./brand";
+import { Logo, ViberIcon, WhatsAppIcon } from "./brand";
 import { BookingDialog } from "./booking-dialog";
 
 export function Navbar() {
@@ -57,9 +56,9 @@ export function Navbar() {
 
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="md" className="hidden text-white/80 hover:bg-transparent hover:text-white md:inline-flex">
-            <a href={`tel:${site.phoneHref}`}>
-              <Phone className="text-brand" />
-              {site.phone}
+            <a href={whatsappLink()} target="_blank" rel="noopener noreferrer">
+              <WhatsAppIcon />
+              Chat with us
             </a>
           </Button>
           <BookingDialog defaults={{ vehicleId: "sedan" }}>
@@ -104,23 +103,24 @@ export function Navbar() {
               </ul>
               <SheetFooter className="gap-2 border-t border-white/10 p-4">
                 <div className="grid grid-cols-2 gap-2">
-                  {site.phones.map((p) => (
-                    <Button
-                      key={p.href}
-                      asChild
-                      variant="outline"
-                      className="h-auto flex-col gap-0.5 rounded-xl border-white/15 bg-transparent py-2.5 text-white hover:bg-white/10 hover:text-white"
-                    >
-                      <a href={`tel:${p.href}`}>
-                        <span className="flex items-center gap-1.5 text-sm font-semibold tabular-nums">
-                          <Phone className="size-3.5 text-brand" /> {p.display}
-                        </span>
-                        <Badge variant="secondary" className="h-4 bg-white/10 text-[10px] tracking-wider text-white/60 uppercase">
-                          {p.network}
-                        </Badge>
-                      </a>
-                    </Button>
-                  ))}
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="h-11 rounded-xl border-white/15 bg-transparent font-semibold text-white hover:bg-white/10 hover:text-white"
+                  >
+                    <a href={whatsappLink()} target="_blank" rel="noopener noreferrer">
+                      <WhatsAppIcon className="size-4!" /> WhatsApp
+                    </a>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="h-11 rounded-xl border-white/15 bg-transparent font-semibold text-white hover:bg-white/10 hover:text-white"
+                  >
+                    <a href={site.viber}>
+                      <ViberIcon className="size-4!" /> Viber
+                    </a>
+                  </Button>
                 </div>
                 <BookingDialog defaults={{ vehicleId: "sedan" }}>
                   <Button variant="brand" size="md" className="w-full">
