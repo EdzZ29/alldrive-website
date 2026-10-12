@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Clock, MapPin, Navigation, Phone } from "lucide-react";
 import { nav, quoteHref, site } from "@/lib/site";
-import { FacebookIcon, GmailIcon, GoogleIcon, Logo, MessengerIcon } from "./brand";
+import { FacebookIcon, GmailIcon, GoogleIcon, Logo, MessengerIcon, ViberIcon, WhatsAppIcon } from "./brand";
 import { Year } from "./year";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ export function Contact() {
       external: false,
     })),
     { icon: MessengerIcon, label: "Messenger", value: "Chat with us", href: site.messenger, external: true },
+    { icon: WhatsAppIcon, label: "WhatsApp", value: site.chatNumber, href: site.whatsapp, external: true },
+    { icon: ViberIcon, label: "Viber", value: site.chatNumber, href: site.viber, external: false },
     { icon: GmailIcon, label: "Email us", value: site.email, href: `mailto:${site.email}`, external: false },
     {
       icon: Navigation,
@@ -119,9 +121,11 @@ export function Footer() {
               {[
                 { href: site.facebook, label: "AllDrive Rent a Car Butuan on Facebook", Icon: FacebookIcon },
                 { href: site.messenger, label: "Message AllDrive on Messenger", Icon: MessengerIcon },
-                { href: `mailto:${site.email}`, label: `Email AllDrive at ${site.email}`, Icon: GmailIcon, mail: true },
+                { href: site.whatsapp, label: `Chat with AllDrive on WhatsApp (${site.chatNumber})`, Icon: WhatsAppIcon },
+                { href: site.viber, label: `Chat with AllDrive on Viber (${site.chatNumber})`, Icon: ViberIcon, sameTab: true },
+                { href: `mailto:${site.email}`, label: `Email AllDrive at ${site.email}`, Icon: GmailIcon, sameTab: true },
                 { href: site.reviewUrl, label: "Leave AllDrive a Google review", Icon: GoogleIcon },
-              ].map(({ href, label, Icon, mail }) => (
+              ].map(({ href, label, Icon, sameTab }) => (
                 <Button
                   key={href}
                   asChild
@@ -131,7 +135,7 @@ export function Footer() {
                 >
                   <a
                     href={href}
-                    {...(mail ? {} : { target: "_blank", rel: "noopener noreferrer" })}
+                    {...(sameTab ? {} : { target: "_blank", rel: "noopener noreferrer" })}
                     aria-label={label}
                     title={label}
                   >

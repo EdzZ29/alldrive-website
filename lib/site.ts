@@ -40,6 +40,10 @@ export const site = {
   ],
   email: "alldrivebtc@gmail.com",
   messenger: "https://m.me/alldriverentacarbutuan",
+  // Direct chat on the Smart number.
+  chatNumber: "0946 126 0177",
+  whatsapp: "https://wa.me/639461260177",
+  viber: "viber://chat?number=%2B639461260177",
   facebook: "https://www.facebook.com/alldriverentacarbutuan",
   mapsUrl: `https://www.google.com/maps/place/?q=place_id:${googlePlaceId}`,
   // Opens turn-by-turn directions to the exact Google Maps pin.
