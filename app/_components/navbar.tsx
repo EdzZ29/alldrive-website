@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, Menu } from "lucide-react";
+import { ArrowUpRight, Menu, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { nav, site, whatsappLink } from "@/lib/site";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle, 
 import { Logo, ViberIcon, WhatsAppIcon } from "./brand";
 import { BookingDialog } from "./booking-dialog";
 import { ViberLink } from "./viber-link";
+import { ChatMenu } from "./chat-menu";
+
+const smart = site.phones[0];
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -56,12 +59,20 @@ export function Navbar() {
         </ul>
 
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="md" className="hidden text-white/80 hover:bg-transparent hover:text-white md:inline-flex">
-            <a href={whatsappLink()} target="_blank" rel="noopener noreferrer">
-              <WhatsAppIcon />
-              Chat with us
-            </a>
-          </Button>
+          {/* Call us: the Smart number */}
+          <a
+            href={`tel:${smart.href}`}
+            className="group hidden items-center gap-2.5 rounded-xl px-2 py-1 text-white/85 transition-colors hover:text-white md:flex"
+          >
+            <span className="grid size-9 place-items-center rounded-full bg-white/10 text-brand transition-transform duration-300 group-hover:-rotate-12">
+              <Phone className="size-4" />
+            </span>
+            <span className="flex flex-col text-left leading-tight">
+              <span className="text-[10px] font-semibold tracking-wider text-white/50 uppercase">Call us</span>
+              <span className="text-sm font-semibold tabular-nums">{smart.display}</span>
+            </span>
+          </a>
+          <ChatMenu className="hidden md:inline-flex" />
           <BookingDialog defaults={{ vehicleId: "sedan" }}>
             <Button variant="brand" size="md" className="group hidden sm:inline-flex">
               Book now
@@ -103,6 +114,16 @@ export function Navbar() {
                 ))}
               </ul>
               <SheetFooter className="gap-2 border-t border-white/10 p-4">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="h-12 rounded-xl border-white/15 bg-transparent font-semibold text-white hover:bg-white/10 hover:text-white"
+                >
+                  <a href={`tel:${smart.href}`}>
+                    <Phone className="size-4 text-brand" /> Call us
+                    <span className="tabular-nums text-white/70">{smart.display}</span>
+                  </a>
+                </Button>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     asChild

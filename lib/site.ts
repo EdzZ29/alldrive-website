@@ -16,6 +16,8 @@ import triton from "@/public/images/fleet/mitsubishi-triton.webp";
 import commuter from "@/public/images/fleet/toyota-hiace-commuter.webp";
 import grandia from "@/public/images/fleet/toyota-hiace-gl-grandia.webp";
 import urvan from "@/public/images/fleet/nissan-urvan.webp";
+import gmaLogo from "@/public/images/clients/gma.webp";
+import kmjsLogo from "@/public/images/clients/kmjs.webp";
 
 /**
  * All business details live here.
@@ -75,13 +77,12 @@ export const whatsappLink = (message: string = defaultChatMessage) =>
 export const googleRating = { value: "5.0", count: 92 };
 
 /**
- * Clients who have rented from AllDrive, shown as text wordmarks. To show a real logo instead,
- * add its image under public/images/clients and set `logo` (only with the owner's permission).
+ * Clients who have rented from AllDrive. With a `logo` the card shows it; otherwise it shows
+ * `short` as a text wordmark. Logos live in public/images/clients.
  */
-export const trustedBy: { name: string; short?: string; note: string; logo?: string }[] = [
-  { name: "GMA Network", short: "GMA", note: "TV network" },
-  { name: "Raffy Tulfo in Action", short: "RTIA", note: "Public service program" },
-  { name: "Kapuso Mo, Jessica Soho", short: "KMJS", note: "Documentary program" },
+export const trustedBy: { name: string; short?: string; note: string; logo?: StaticImageData }[] = [
+  { name: "GMA Network", short: "GMA", note: "TV network", logo: gmaLogo },
+  { name: "Kapuso Mo, Jessica Soho", short: "KMJS", note: "Documentary program", logo: kmjsLogo },
 ];
 
 export const testimonials = [

@@ -21,6 +21,7 @@ export function Contact() {
     { icon: WhatsAppIcon, label: "WhatsApp", value: "Message us now", href: whatsappLink(), external: true },
     { icon: ViberIcon, label: "Viber", value: "Chat with us", href: site.viber, external: false },
     { icon: MessengerIcon, label: "Messenger", value: "Chat with us", href: site.messenger, external: true },
+    { icon: FacebookIcon, label: "Facebook", value: "Visit us on Facebook", href: site.facebook, external: true },
     { icon: GmailIcon, label: "Email us", value: site.email, href: `mailto:${site.email}`, external: false },
     {
       icon: Navigation,

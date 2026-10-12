@@ -1,10 +1,10 @@
 import { Clock, MapPin, Navigation } from "lucide-react";
-import { site, whatsappLink } from "@/lib/site";
+import { site } from "@/lib/site";
 import { pageMetadata } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageHero } from "../_components/page-hero";
-import { WhatsAppIcon } from "../_components/brand";
+import { ChatMenu } from "../_components/chat-menu";
 import { Contact } from "../_components/contact";
 
 export const metadata = pageMetadata({
@@ -22,11 +22,7 @@ export default function ContactPage() {
         title="Talk to us any time, day or night."
         actions={
           <>
-            <Button asChild variant="brand" size="xl">
-              <a href={whatsappLink()} target="_blank" rel="noopener noreferrer">
-                <WhatsAppIcon className="rounded-full bg-white p-0.5" /> Chat on WhatsApp
-              </a>
-            </Button>
+            <ChatMenu variant="brand" />
             <Button asChild variant="glass" size="xl">
               <a href={site.directionsUrl} target="_blank" rel="noopener noreferrer">
                 <Navigation className="text-brand" /> Get directions

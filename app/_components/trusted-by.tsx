@@ -24,32 +24,35 @@ export function TrustedBy() {
           </p>
         </div>
 
-        <ul className="mt-12 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <ul className="mx-auto mt-14 flex max-w-4xl flex-wrap items-start justify-center gap-x-16 gap-y-10 sm:gap-x-24">
           {trustedBy.map((c, i) => (
             <li key={c.name} data-reveal style={{ "--d": `${i * 80}ms` } as React.CSSProperties}>
-              <div className="group flex h-full flex-col items-center justify-center rounded-[1.5rem] border border-line bg-white px-4 py-8 text-center transition-all duration-500 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_24px_60px_-24px_rgba(7,12,22,0.25)] sm:py-10">
+              <div className="group flex flex-col items-center text-center transition-transform duration-500 ease-out hover:-translate-y-1.5">
                 {c.logo ? (
-                  <Image src={c.logo} alt={c.name} width={180} height={72} className="h-14 w-auto object-contain" />
+                  <Image
+                    src={c.logo}
+                    alt={`${c.name} logo`}
+                    sizes="240px"
+                    className="h-16 w-auto object-contain transition-transform duration-500 ease-out group-hover:scale-110 sm:h-24"
+                  />
                 ) : (
-                  <span className="font-display text-4xl leading-none font-extrabold tracking-tight text-ink transition-colors duration-300 group-hover:text-brand-600 sm:text-5xl">
+                  <span className="font-display text-5xl leading-none font-extrabold tracking-tight text-ink transition-colors duration-300 group-hover:text-brand-600 sm:text-6xl">
                     {c.short ?? c.name}
                   </span>
                 )}
-                <span className="mt-4 text-sm font-semibold text-ink">{c.name}</span>
+                <span className="mt-5 text-sm font-semibold text-ink">{c.name}</span>
                 <span className="mt-0.5 text-xs text-muted-foreground">{c.note}</span>
               </div>
             </li>
           ))}
-          <li data-reveal style={{ "--d": `${trustedBy.length * 80}ms` } as React.CSSProperties}>
-            <div className="group flex h-full flex-col items-center justify-center rounded-[1.5rem] bg-ink px-4 py-8 text-center text-white transition-transform duration-500 hover:-translate-y-1 sm:py-10">
-              <span className="grid size-14 place-items-center rounded-full bg-brand text-ink transition-transform duration-500 group-hover:rotate-90">
-                <Plus className="size-7" />
-              </span>
-              <span className="mt-4 text-sm font-semibold">And many more</span>
-              <span className="mt-0.5 text-xs text-white/60">Businesses, families and travelers</span>
-            </div>
-          </li>
         </ul>
+        <p
+          data-reveal
+          style={{ "--d": `${trustedBy.length * 80}ms` } as React.CSSProperties}
+          className="mt-10 flex items-center justify-center gap-1.5 text-sm font-semibold text-mute"
+        >
+          <Plus className="size-4 text-brand-600" /> And many more businesses, families and travelers
+        </p>
       </div>
     </section>
   );

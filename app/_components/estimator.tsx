@@ -9,7 +9,9 @@ import {
   Calculator,
   CalendarCheck,
   KeyRound,
+  MessageSquareText,
   Minus,
+  Phone,
   Plus,
   Truck,
   UserCheck,
@@ -262,6 +264,35 @@ export function Estimator() {
                   <ViberIcon /> Viber
                 </ViberLink>
               </Button>
+            </div>
+
+            {/* Call or text either number; Text opens SMS with the quote filled in */}
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {site.phones.map((p) => (
+                <div key={p.href} className="flex items-center justify-between gap-3 rounded-2xl border border-white/15 px-4 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold tracking-wider text-white/50 uppercase">{p.network}</p>
+                    <p className="font-semibold whitespace-nowrap tabular-nums">{p.display}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-1.5">
+                    <Button asChild variant="brand" size="md" className="h-9 rounded-lg px-3 hover:translate-y-0">
+                      <a href={`tel:${p.href}`} aria-label={`Call ${p.network} ${p.display}`}>
+                        <Phone /> Call
+                      </a>
+                    </Button>
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="md"
+                      className="h-9 rounded-lg border-white/20 bg-transparent px-3 text-white hover:bg-white/10 hover:text-white"
+                    >
+                      <a href={`sms:${p.href}?&body=${encodeURIComponent(message)}`} aria-label={`Text ${p.network} ${p.display}`}>
+                        <MessageSquareText /> Text
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
             <p className="mt-4 text-center text-xs text-white/40">
               Estimate only. Final rate confirmed upon booking. Holidays and peak seasons may vary.
