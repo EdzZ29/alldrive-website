@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { CalendarCheck, Check, ChevronDown, Snowflake, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fleet, models, rateText, zones, type CarModel, type VehicleId } from "@/lib/site";
+import { fleet, modelPath, models, rateText, zones, type CarModel, type VehicleId } from "@/lib/site";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -32,7 +33,11 @@ function ModelCard({ model, index }: { model: CarModel; index: number }) {
       className="group animate-pop-in gap-0 rounded-[1.75rem] border border-line bg-white p-2 py-2 ring-0 transition-all duration-500 hover:-translate-y-1.5 hover:border-brand/40 hover:shadow-[0_24px_60px_-20px_rgba(7,12,22,0.25)]"
     >
       {/* Photo */}
-      <div className="relative aspect-[16/10] overflow-hidden rounded-[1.35rem] bg-white">
+      <Link
+        href={modelPath(model.id)}
+        aria-label={`${model.name} details and rates`}
+        className="relative block aspect-[16/10] overflow-hidden rounded-[1.35rem] bg-white"
+      >
         {model.variants.map((v, i) => (
           <Image
             key={v.label}
@@ -50,12 +55,16 @@ function ModelCard({ model, index }: { model: CarModel; index: number }) {
         <Badge variant="secondary" className="absolute top-3 left-3 h-6 px-3 text-[11px] font-bold tracking-wider uppercase">
           {vehicle.short}
         </Badge>
-      </div>
+      </Link>
 
       <CardContent className="flex flex-1 flex-col px-3.5 pt-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="font-display text-lg leading-tight font-bold tracking-tight sm:text-xl">{model.name}</h3>
+            <h3 className="font-display text-lg leading-tight font-bold tracking-tight sm:text-xl">
+              <Link href={modelPath(model.id)} className="transition-colors hover:text-brand-600">
+                {model.name}
+              </Link>
+            </h3>
             {model.variants.length > 1 && <p className="mt-0.5 text-xs text-muted-foreground">{current.label}</p>}
           </div>
           <div className="shrink-0 text-right">

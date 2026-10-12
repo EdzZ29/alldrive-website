@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { ArrowUpRight, Clock, MapPin, Navigation, Phone } from "lucide-react";
-import { nav, site } from "@/lib/site";
+import { nav, quoteHref, site } from "@/lib/site";
 import { FacebookIcon, GmailIcon, GoogleIcon, Logo, MessengerIcon } from "./brand";
 import { Year } from "./year";
 import { Badge } from "@/components/ui/badge";
@@ -44,10 +45,10 @@ export function Contact() {
             </h2>
             <div data-reveal style={{ "--d": "160ms" } as React.CSSProperties} className="mt-10 flex flex-col gap-3 sm:flex-row">
               <Button asChild variant="ink" size="xl" className="group">
-                <a href="#book">
+                <Link href={quoteHref}>
                   Get a quote
                   <ArrowUpRight className="text-brand transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </a>
+                </Link>
               </Button>
               <Button asChild variant="outline-ink" size="xl" className="group bg-transparent">
                 <a href={site.reviewUrl} target="_blank" rel="noopener noreferrer">
@@ -166,9 +167,9 @@ export function Footer() {
             <ul className="mt-5 space-y-3">
               {nav.map((n) => (
                 <li key={n.href}>
-                  <a href={n.href} className="text-white/70 transition hover:text-brand">
+                  <Link href={n.href} className="text-white/70 transition hover:text-brand">
                     {n.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

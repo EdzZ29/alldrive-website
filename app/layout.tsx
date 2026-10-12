@@ -1,8 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist } from "next/font/google";
 import { RevealObserver } from "./_components/reveal-observer";
+import { Navbar } from "./_components/navbar";
+import { Footer } from "./_components/contact";
+import { JsonLd } from "./_components/json-ld";
 import { Analytics } from "@vercel/analytics/next";
 import { driverRate, fleet, site, startingRate } from "@/lib/site";
+import { homeTitle } from "@/lib/seo";
 import "./globals.css";
 
 const geist = Geist({
@@ -15,12 +19,10 @@ const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
 });
 
-const title = `${site.legalName} | Self-Drive & With Driver`;
-
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: title,
+    default: homeTitle,
     template: `%s | ${site.legalName}`,
   },
   description: site.description,
@@ -40,18 +42,17 @@ export const metadata: Metadata = {
     "AllDrive",
     "AllDrive Rent a Car Butuan",
   ],
-  alternates: { canonical: "/" },
+  // Canonical URL and share card are set per page (see lib/seo.ts).
   openGraph: {
     type: "website",
     locale: "en_PH",
-    url: "/",
     siteName: site.legalName,
-    title,
+    title: homeTitle,
     description: site.description,
   },
   twitter: {
     card: "summary_large_image",
-    title,
+    title: homeTitle,
     description: site.description,
   },
   robots: {
@@ -80,7 +81,7 @@ const jsonLd = {
   alternateName: site.name,
   description: site.description,
   url: site.url,
-  logo: `${site.url}/logo-mark.png`,
+  logo: `${site.url}/icon.png`,
   image: `${site.url}/opengraph-image.jpg`,
   telephone: site.phoneHref,
   priceRange: `₱${startingRate.toLocaleString("en-PH")}+ per day`,
@@ -139,14 +140,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-PH" className={`${geist.variable} ${bricolage.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-        />
+        <JsonLd data={jsonLd} />
         <noscript>
           <style>{`[data-reveal]{opacity:1!important;transform:none!important}`}</style>
         </noscript>
+        <Navbar />
         {children}
+        <Footer />
         <RevealObserver />
         <Analytics />
       </body>

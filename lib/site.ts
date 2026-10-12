@@ -16,8 +16,7 @@ import grandia from "@/public/images/fleet/toyota-hiace-gl-grandia.webp";
 import urvan from "@/public/images/fleet/nissan-urvan.webp";
 
 /**
- * All business details live here. Before going live, set the
- * NEXT_PUBLIC_SITE_URL env var to the live domain.
+ * All business details live here.
  */
 const googlePlaceId = "ChIJBUESUZzBATMRMZf6knQ5TZw";
 
@@ -27,14 +26,9 @@ export const site = {
   tagline: "Rent a Car in Butuan City, Caraga Region",
   description:
     "AllDrive Rent a Car Butuan: self-drive from ₱1,300/day or with a professional driver, open 24 hours. Toyota Vios, Innova, Fortuner, Hilux, Hiace and more for trips anywhere in Mindanao.",
-  // Live domain for SEO links, robots.txt and sitemap.xml. Set NEXT_PUBLIC_SITE_URL once a custom
-  // domain is connected; until then Vercel's production domain is used automatically.
-  url: (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL &&
-      `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`) ||
-    "http://localhost:3000"
-  ).replace(/\/+$/, ""),
+  // Live domain for SEO links, robots.txt and sitemap.xml. Vercel serves the site on www
+  // (alldrivebutuan.com redirects there), so that is the canonical address.
+  url: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.alldrivebutuan.com").replace(/\/+$/, ""),
   // Primary number, used for the main call/text buttons.
   phone: "0946 126 0177",
   phoneHref: "+639461260177",
@@ -49,6 +43,8 @@ export const site = {
   // Opens turn-by-turn directions to the exact Google Maps pin.
   directionsUrl: `https://www.google.com/maps/dir/?api=1&destination=AllDrive+Rent+a+Car+Butuan&destination_place_id=${googlePlaceId}`,
   reviewUrl: `https://search.google.com/local/writereview?placeid=${googlePlaceId}`,
+  // Keyless Google Maps embed for the contact page.
+  mapsEmbedUrl: "https://maps.google.com/maps?q=AllDrive+Rent+a+Car+Butuan,+Doongan,+Butuan+City&z=16&output=embed",
   address: {
     full: "Brgy, P-5 Lower Doongan, Doongan, Butuan City, 8600 Agusan del Norte",
     street: "P-5 Lower Doongan, Doongan",
@@ -83,12 +79,15 @@ export const testimonials = [
 ];
 
 export const nav = [
-  { label: "Fleet", href: "#fleet" },
-  { label: "Rates", href: "#rates" },
-  { label: "Driver", href: "#driver" },
-  { label: "Services", href: "#services" },
-  { label: "Contact", href: "#contact" },
+  { label: "Fleet", href: "/fleet" },
+  { label: "Rates", href: "/rates" },
+  { label: "Driver", href: "/driver" },
+  { label: "Services", href: "/services" },
+  { label: "Contact", href: "/contact" },
 ] as const;
+
+/** Where the instant quote lives (the estimator section). */
+export const quoteHref = "/rates#book";
 
 // Rate zones. Every Mindanao destination below maps to one of these.
 export const zones = [
@@ -314,6 +313,10 @@ export const models: CarModel[] = [
   },
   { id: "nissan-urvan", name: "Nissan Urvan", category: "van", variants: [{ label: "Gray", color: "#4b4f55", image: urvan }] },
 ];
+
+export const modelPath = (id: string) => `/fleet/${id}`;
+export const findModel = (id: string) => models.find((m) => m.id === id);
+export const vehicleOf = (model: CarModel) => fleet.find((v) => v.id === model.category)!;
 
 export const driverRate = 1000; // PHP per day
 

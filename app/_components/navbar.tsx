@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowUpRight, Menu, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { nav, site } from "@/lib/site";
@@ -8,10 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "./brand";
+import { BookingDialog } from "./booking-dialog";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -31,20 +36,21 @@ export function Navbar() {
             : "border-transparent bg-transparent",
         )}
       >
-        <a href="#top" aria-label={`${site.legalName} home`}>
+        <Link href="/" aria-label={`${site.legalName} home`}>
           <Logo />
-        </a>
+        </Link>
 
         <ul className="hidden items-center gap-1 lg:flex">
           {nav.map((item) => (
             <li key={item.href}>
-              <a
+              <Link
                 href={item.href}
-                className="group relative rounded-full px-4 py-2 text-sm font-medium text-white/75 transition-colors hover:text-white"
+                aria-current={isActive(item.href) ? "page" : undefined}
+                className="group relative rounded-full px-4 py-2 text-sm font-medium text-white/75 transition-colors hover:text-white aria-[current=page]:text-white"
               >
                 {item.label}
-                <span className="absolute inset-x-4 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-brand transition-transform duration-300 group-hover:scale-x-100" />
-              </a>
+                <span className="absolute inset-x-4 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-brand transition-transform duration-300 group-hover:scale-x-100 group-aria-[current=page]:scale-x-100" />
+              </Link>
             </li>
           ))}
         </ul>
@@ -56,12 +62,12 @@ export function Navbar() {
               {site.phone}
             </a>
           </Button>
-          <Button asChild variant="brand" size="md" className="group hidden sm:inline-flex">
-            <a href="#book">
+          <BookingDialog defaults={{ vehicleId: "sedan" }}>
+            <Button variant="brand" size="md" className="group hidden sm:inline-flex">
               Book now
               <ArrowUpRight className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </a>
-          </Button>
+            </Button>
+          </BookingDialog>
 
           {/* Mobile menu */}
           <Sheet open={open} onOpenChange={setOpen}>
@@ -84,13 +90,14 @@ export function Navbar() {
                 {nav.map((item, i) => (
                   <li key={item.href} className="animate-pop-in" style={{ animationDelay: `${80 + i * 50}ms` }}>
                     <SheetClose asChild>
-                      <a
+                      <Link
                         href={item.href}
-                        className="flex items-center justify-between rounded-xl px-3 py-3.5 font-display text-2xl font-semibold transition-colors hover:bg-white/5"
+                        aria-current={isActive(item.href) ? "page" : undefined}
+                        className="flex items-center justify-between rounded-xl px-3 py-3.5 font-display text-2xl font-semibold transition-colors hover:bg-white/5 aria-[current=page]:bg-white/5 aria-[current=page]:text-brand"
                       >
                         {item.label}
                         <ArrowUpRight className="size-5 text-brand" />
-                      </a>
+                      </Link>
                     </SheetClose>
                   </li>
                 ))}
@@ -115,11 +122,11 @@ export function Navbar() {
                     </Button>
                   ))}
                 </div>
-                <SheetClose asChild>
-                  <Button asChild variant="brand" size="md" className="w-full">
-                    <a href="#book">Book now</a>
+                <BookingDialog defaults={{ vehicleId: "sedan" }}>
+                  <Button variant="brand" size="md" className="w-full">
+                    Book now
                   </Button>
-                </SheetClose>
+                </BookingDialog>
               </SheetFooter>
             </SheetContent>
           </Sheet>
