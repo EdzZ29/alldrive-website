@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import nodemailer from "nodemailer";
 import { buildBookingEmail, buildCustomerEmail, type BookingDetails } from "@/lib/booking-email";
 import { buildCustomerSms, buildOwnerSms, sendSms, toPhMobile } from "@/lib/booking-sms";
@@ -14,6 +15,21 @@ const SMS_TO = (process.env.BOOKING_SMS_TO || site.phones.map((p) => p.display).
   .map((n) => toPhMobile(n))
   .filter((n): n is string => n !== null);
 const SMS_CONFIRM_CUSTOMER = process.env.BOOKING_SMS_CONFIRM_CUSTOMER !== "false";
+
+// Each booking sends emails and paid texts, so one visitor can only send a few in a row.
+// Kept in memory, so it resets when the server restarts; enough to stop someone spamming the form.
+const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 30 * 60 * 1000;
+const recentBookings = new Map<string, number[]>();
+
+function isRateLimited(ip: string) {
+  const now = Date.now();
+  const recent = (recentBookings.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  if (recent.length >= RATE_LIMIT) return true;
+  recentBookings.set(ip, [...recent, now]);
+  if (recentBookings.size > 5000) recentBookings.delete(recentBookings.keys().next().value!);
+  return false;
+}
 
 const str = (data: FormData, key: string, max = 200) => String(data.get(key) ?? "").trim().slice(0, max);
 
@@ -63,6 +79,11 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   ].filter(Boolean);
   if (missing.length || !place || !vehicle || !dateTime) {
     return { ok: false, error: `Please check: ${missing.join(", ")}.` };
+  }
+
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  if (isRateLimited(ip)) {
+    return { ok: false, error: "You've sent several bookings already. Please call or text us to add another." };
   }
 
   // Recompute the estimate on the server instead of trusting the browser.

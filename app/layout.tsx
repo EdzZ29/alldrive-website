@@ -156,7 +156,7 @@ const jsonLd = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-PH" className={`${geist.variable} ${bricolage.variable} h-full antialiased`}>
+    <html lang="en-PH" data-scroll-behavior="smooth" className={`${geist.variable} ${bricolage.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">
         <JsonLd data={jsonLd} />
         <noscript>
