@@ -2,6 +2,7 @@ import { pageMetadata } from "@/lib/seo";
 import { PageHero } from "../_components/page-hero";
 import { Services } from "../_components/services";
 import { WhyUs } from "../_components/why-us";
+import { TrustedBy } from "../_components/trusted-by";
 import { Contact } from "../_components/contact";
 
 export const metadata = pageMetadata({
@@ -19,6 +20,7 @@ export default function ServicesPage() {
         hours in Butuan City.
       </PageHero>
       <Services />
+      <TrustedBy />
       <WhyUs />
       <Contact />
     </main>

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowUpRight, Clock, MapPin, Navigation } from "lucide-react";
+import { ArrowUpRight, Clock, MapPin, Navigation, Phone } from "lucide-react";
 import { nav, quoteHref, site, whatsappLink } from "@/lib/site";
 import { FacebookIcon, GmailIcon, GoogleIcon, Logo, MessengerIcon, ViberIcon, WhatsAppIcon } from "./brand";
 import { Year } from "./year";
+import { ViberLink } from "./viber-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +11,13 @@ import { Separator } from "@/components/ui/separator";
 
 export function Contact() {
   const channels = [
+    ...site.phones.map((p) => ({
+      icon: Phone,
+      label: `Call · ${p.network}`,
+      value: p.display,
+      href: `tel:${p.href}`,
+      external: false,
+    })),
     { icon: WhatsAppIcon, label: "WhatsApp", value: "Message us now", href: whatsappLink(), external: true },
     { icon: ViberIcon, label: "Viber", value: "Chat with us", href: site.viber, external: false },
     { icon: MessengerIcon, label: "Messenger", value: "Chat with us", href: site.messenger, external: true },
@@ -70,12 +78,13 @@ export function Contact() {
               return (
                 <li key={c.label} data-reveal="right" style={{ "--d": `${i * 80}ms` } as React.CSSProperties}>
                   <Card asChild className="group flex-row items-center gap-4 rounded-2xl bg-white/90 p-3.5 ring-0 transition-all duration-300 hover:translate-x-1 hover:bg-white">
-                    <a
-                      href={c.href}
-                      {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    >
-                      {inner}
-                    </a>
+                    {c.href === site.viber ? (
+                      <ViberLink>{inner}</ViberLink>
+                    ) : (
+                      <a href={c.href} {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+                        {inner}
+                      </a>
+                    )}
                   </Card>
                 </li>
               );
@@ -126,21 +135,41 @@ export function Footer() {
                   size="icon-xl"
                   className="border-white/15 bg-transparent text-white/70 hover:-translate-y-0.5 hover:border-brand hover:bg-brand hover:text-ink"
                 >
-                  <a
-                    href={href}
-                    {...(sameTab ? {} : { target: "_blank", rel: "noopener noreferrer" })}
-                    aria-label={label}
-                    title={label}
-                  >
-                    <Icon />
-                  </a>
+                  {href === site.viber ? (
+                    <ViberLink aria-label={label} title={label}>
+                      <Icon />
+                    </ViberLink>
+                  ) : (
+                    <a
+                      href={href}
+                      {...(sameTab ? {} : { target: "_blank", rel: "noopener noreferrer" })}
+                      aria-label={label}
+                      title={label}
+                    >
+                      <Icon />
+                    </a>
+                  )}
                 </Button>
               ))}
             </div>
           </div>
 
           <div className="lg:col-span-3">
-            <p className="text-xs font-bold tracking-[0.2em] text-white/40 uppercase">Message us</p>
+            <p className="text-xs font-bold tracking-[0.2em] text-white/40 uppercase">Call us</p>
+            <ul className="mt-5 space-y-3">
+              {site.phones.map((p) => (
+                <li key={p.href}>
+                  <a href={`tel:${p.href}`} className="group flex items-center gap-3 text-white/80 transition hover:text-brand">
+                    <Phone className="size-4 text-brand" />
+                    <span className="font-semibold tabular-nums">{p.display}</span>
+                    <Badge variant="secondary" className="rounded-md bg-white/10 text-[10px] font-bold tracking-wider text-white/60 uppercase">
+                      {p.network}
+                    </Badge>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-8 text-xs font-bold tracking-[0.2em] text-white/40 uppercase">Message us</p>
             <ul className="mt-5 space-y-3">
               {[
                 { href: whatsappLink(), label: "Chat on WhatsApp", Icon: WhatsAppIcon, newTab: true },
@@ -148,14 +177,21 @@ export function Footer() {
                 { href: site.messenger, label: "Chat on Messenger", Icon: MessengerIcon, newTab: true },
               ].map(({ href, label, Icon, newTab }) => (
                 <li key={label}>
-                  <a
-                    href={href}
-                    {...(newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    className="group flex items-center gap-3 font-semibold text-white/80 transition hover:text-brand"
-                  >
-                    <Icon className="size-5 text-brand transition-transform duration-300 group-hover:-rotate-8" />
-                    {label}
-                  </a>
+                  {href === site.viber ? (
+                    <ViberLink className="group flex items-center gap-3 font-semibold text-white/80 transition hover:text-brand">
+                      <Icon className="size-5 text-brand transition-transform duration-300 group-hover:-rotate-8" />
+                      {label}
+                    </ViberLink>
+                  ) : (
+                    <a
+                      href={href}
+                      {...(newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                      className="group flex items-center gap-3 font-semibold text-white/80 transition hover:text-brand"
+                    >
+                      <Icon className="size-5 text-brand transition-transform duration-300 group-hover:-rotate-8" />
+                      {label}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

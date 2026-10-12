@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Logo, ViberIcon, WhatsAppIcon } from "./brand";
 import { BookingDialog } from "./booking-dialog";
+import { ViberLink } from "./viber-link";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -117,9 +118,9 @@ export function Navbar() {
                     variant="outline"
                     className="h-11 rounded-xl border-white/15 bg-transparent font-semibold text-white hover:bg-white/10 hover:text-white"
                   >
-                    <a href={site.viber}>
+                    <ViberLink>
                       <ViberIcon className="size-4!" /> Viber
-                    </a>
+                    </ViberLink>
                   </Button>
                 </div>
                 <BookingDialog defaults={{ vehicleId: "sedan" }}>

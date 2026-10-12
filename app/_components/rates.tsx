@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { driverRate, fleet, peso, rateText, regions, zones, type VehicleId } from "@/lib/site";
+import { driverRate, fleet, models, peso, rateText, regions, vehicleOf, zones, type VehicleId } from "@/lib/site";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -103,6 +103,21 @@ export function Rates() {
             </TabsContent>
           ))}
         </Tabs>
+
+        {/* Cars priced differently from their category */}
+        {models
+          .filter((m) => m.rates)
+          .map((m) => (
+            <p key={m.id} className="mx-auto mt-6 max-w-3xl rounded-2xl border border-brand/30 bg-brand-50 px-5 py-3 text-center text-sm text-ink">
+              <span className="font-bold">{m.name}</span> ({vehicleOf(m).short}) has its own rate:{" "}
+              {zones.map((z, i) => (
+                <span key={z.id}>
+                  {i > 0 && " · "}
+                  {z.short} <span className="font-semibold tabular-nums">{rateText(m.rates![z.id])}</span>
+                </span>
+              ))}
+            </p>
+          ))}
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           All rates are per day. Weekly and monthly rates available on inquiry. Prices may vary on holidays and peak seasons.

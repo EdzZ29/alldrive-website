@@ -3,6 +3,7 @@ import { BadgeCheck, CarFront, Clock, MessagesSquare, Receipt, ShieldCheck, Spar
 import brandImg from "@/public/images/alldrive.jpg";
 import { fleetSize, places, site, startingRate, whatsappLink } from "@/lib/site";
 import { ViberIcon, WhatsAppIcon } from "./brand";
+import { ViberLink } from "./viber-link";
 import { CountUp } from "./count-up";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,9 +41,9 @@ export function WhyUs() {
                 </a>
               </Button>
               <Button asChild variant="outline-ink" size="xl" className="group">
-                <a href={site.viber}>
+                <ViberLink>
                   <ViberIcon className="transition-transform duration-300 group-hover:-rotate-12" /> Chat on Viber
-                </a>
+                </ViberLink>
               </Button>
             </div>
           </div>

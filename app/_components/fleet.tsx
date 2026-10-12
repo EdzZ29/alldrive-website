@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { CalendarCheck, Check, ChevronDown, Snowflake, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fleet, fleetSizeText, modelPath, models, rateText, zones, type CarModel, type VehicleId } from "@/lib/site";
+import { fleet, fleetSizeText, modelPath, models, rateText, ratesOf, zones, type CarModel, type VehicleId } from "@/lib/site";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -25,7 +25,8 @@ function ModelCard({ model, index }: { model: CarModel; index: number }) {
   const [variant, setVariant] = useState(0);
   const vehicle = fleet.find((v) => v.id === model.category)!;
   const current = model.variants[variant];
-  const fromRate = vehicle.rates.butuan;
+  const rates = ratesOf(model);
+  const fromRate = rates.butuan;
 
   return (
     <Card
@@ -141,7 +142,7 @@ function ModelCard({ model, index }: { model: CarModel; index: number }) {
               {zones.map((z) => (
                 <li key={z.id} className="flex justify-between rounded-lg px-2 py-1.5 odd:bg-muted">
                   <span className="text-muted-foreground">{z.label}</span>
-                  <span className="font-semibold tabular-nums">{rateText(vehicle.rates[z.id])}</span>
+                  <span className="font-semibold tabular-nums">{rateText(rates[z.id])}</span>
                 </li>
               ))}
             </ul>

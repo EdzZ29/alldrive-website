@@ -11,6 +11,7 @@ import {
   Copy,
   KeyRound,
   Loader2,
+  MessageSquareText,
   Pencil,
   Send,
   UserCheck,
@@ -104,7 +105,7 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
   const { vehicleId, model } = parseCar(car);
   const destination = findPlace(placeId);
   const zone = zones.find((z) => z.id === destination.zone)!;
-  const { vehicle, total } = estimateTrip(vehicleId, destination.zone, Math.max(1, days || 1), withDriver);
+  const { vehicle, total } = estimateTrip(vehicleId, destination.zone, Math.max(1, days || 1), withDriver, model?.id);
   const carName = model ? `${model.name} (${vehicle.short})` : `Any ${vehicle.name} (${vehicle.seats})`;
   const estimateText =
     total == null
@@ -152,9 +153,14 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
     });
   };
 
-  const sendVia = async (channel: "whatsapp" | "messenger") => {
+  const sendVia = async (channel: "smart" | "globe" | "whatsapp" | "messenger") => {
     if (!snapshot) return;
     const message = textMessage(detailsFrom(snapshot));
+    if (channel === "smart" || channel === "globe") {
+      const phone = site.phones.find((p) => p.network.toLowerCase() === channel) ?? site.phones[0];
+      window.location.assign(`sms:${phone.href}?&body=${encodeURIComponent(message)}`);
+      return;
+    }
     if (channel === "messenger") {
       try {
         await navigator.clipboard.writeText(message);
@@ -169,7 +175,21 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
   };
 
   const altChannels = (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="grid grid-cols-2 gap-2">
+      {site.phones.map((p) => (
+        <Button
+          key={p.href}
+          type="button"
+          variant="outline"
+          onClick={() => sendVia(p.network.toLowerCase() as "smart" | "globe")}
+          className="h-auto flex-col gap-0 rounded-xl border-line py-2 font-bold"
+        >
+          <span className="flex items-center gap-1.5">
+            <MessageSquareText className="text-brand-600" /> Text {p.network}
+          </span>
+          <span className="text-[11px] font-medium text-muted-foreground tabular-nums">{p.display}</span>
+        </Button>
+      ))}
       <Button
         type="button"
         variant="outline"

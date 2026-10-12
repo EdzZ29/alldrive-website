@@ -31,12 +31,12 @@ export const site = {
   // Live domain for SEO links, robots.txt and sitemap.xml. Vercel serves the site on www
   // (alldrivebutuan.com redirects there), so that is the canonical address.
   url: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.alldrivebutuan.com").replace(/\/+$/, ""),
-  // Phone numbers are NEVER shown on the page. They only go in the hidden business details
-  // Google reads (layout.tsx JSON-LD). Visitors contact us through WhatsApp, Viber or Messenger.
+  // Call numbers, shown only in the contact section and footer so clients can call AllDrive.
+  // Everywhere else, buttons open a WhatsApp chat instead.
   phoneHref: "+639461260177",
   phones: [
-    { network: "Smart", href: "+639461260177" },
-    { network: "Globe", href: "+639562275764" },
+    { network: "Smart", display: "0946 126 0177", href: "+639461260177" },
+    { network: "Globe", display: "0956 227 5764", href: "+639562275764" },
   ],
   email: "alldrivebtc@gmail.com",
   messenger: "https://m.me/alldriverentacarbutuan",
@@ -64,12 +64,25 @@ export const site = {
 
 export const defaultChatMessage = "Hi AllDrive! I would like to rent a car.";
 
-/** Opens a WhatsApp chat (app on phones, WhatsApp Web on computers) with a ready-made message. */
+/**
+ * Opens a WhatsApp chat (app on phones, WhatsApp Web on computers) with a ready-made message.
+ * Uses api.whatsapp.com rather than the short wa.me link, which some PH networks block.
+ */
 export const whatsappLink = (message: string = defaultChatMessage) =>
-  `https://wa.me/${site.whatsappNumber}?text=${encodeURIComponent(message)}`;
+  `https://api.whatsapp.com/send?phone=${site.whatsappNumber}&text=${encodeURIComponent(message)}`;
 
 // From the Google Business listing. Update the count now and then.
 export const googleRating = { value: "5.0", count: 92 };
+
+/**
+ * Clients who have rented from AllDrive, shown as text wordmarks. To show a real logo instead,
+ * add its image under public/images/clients and set `logo` (only with the owner's permission).
+ */
+export const trustedBy: { name: string; short?: string; note: string; logo?: string }[] = [
+  { name: "GMA Network", short: "GMA", note: "TV network" },
+  { name: "Raffy Tulfo in Action", short: "RTIA", note: "Public service program" },
+  { name: "Kapuso Mo, Jessica Soho", short: "KMJS", note: "Documentary program" },
+];
 
 export const testimonials = [
   {
@@ -278,6 +291,8 @@ export type CarModel = {
   seats?: string;
   specs?: string[];
   variants: { label: string; color: string; image: StaticImageData }[];
+  /** Own daily rates when this car is priced differently from its category. */
+  rates?: Record<ZoneId, number | null>;
 };
 
 // The actual cars in the fleet. Multiple variants = available colors.
@@ -300,6 +315,7 @@ export const models: CarModel[] = [
     name: "Toyota Innova",
     category: "suv",
     seats: "7-8 seats",
+    rates: { butuan: 2300, caraga: 2800, "cdo-davao": 3300, outside: 3800 },
     variants: [
       { label: "White", color: "#e8e9eb", image: innovaWhite },
       { label: "Red", color: "#5a1f2b", image: innovaRed },
@@ -335,6 +351,13 @@ export const fleetSizeText = `${fleetSize}+`;
 export const modelPath = (id: string) => `/fleet/${id}`;
 export const findModel = (id: string) => models.find((m) => m.id === id);
 export const vehicleOf = (model: CarModel) => fleet.find((v) => v.id === model.category)!;
+/** A car's daily rates: its own if set, otherwise its category's. */
+export const ratesOf = (model: CarModel) => model.rates ?? vehicleOf(model).rates;
+/** Cheapest Butuan rate among the cars in a category (null if all are on request). */
+export const fromRateOf = (vehicleId: VehicleId) => {
+  const rates = models.filter((m) => m.category === vehicleId).flatMap((m) => (ratesOf(m).butuan == null ? [] : [ratesOf(m).butuan!]));
+  return rates.length ? Math.min(...rates) : null;
+};
 
 export const driverRate = 1000; // PHP per day
 
@@ -346,10 +369,14 @@ export const rateText = (n: number | null, decimals = 0) => (n == null ? "On req
 
 export const startingRate = Math.min(...fleet.flatMap((v) => (v.rates.butuan == null ? [] : [v.rates.butuan])));
 
-/** Trip estimate used by both the estimator and the booking form. total is null when the rate is on request. */
-export function estimateTrip(vehicleId: VehicleId, zoneId: ZoneId, days: number, withDriver: boolean) {
+/**
+ * Trip estimate used by both the estimator and the booking form. Pass modelId to use a car's own
+ * rates (e.g. the Innova). total is null when the rate is on request.
+ */
+export function estimateTrip(vehicleId: VehicleId, zoneId: ZoneId, days: number, withDriver: boolean, modelId?: string) {
   const vehicle = fleet.find((v) => v.id === vehicleId)!;
-  const dailyRate = vehicle.rates[zoneId];
+  const model = modelId ? models.find((m) => m.id === modelId && m.category === vehicleId) : undefined;
+  const dailyRate = (model ? ratesOf(model) : vehicle.rates)[zoneId];
   const rental = dailyRate == null ? null : dailyRate * days;
   const driver = withDriver ? driverRate * days : 0;
   return { vehicle, dailyRate, rental, driver, total: rental == null ? null : rental + driver };

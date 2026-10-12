@@ -10,6 +10,7 @@ import {
   models,
   peso,
   rateText,
+  ratesOf,
   site,
   vehicleOf,
   whatsappLink,
@@ -25,6 +26,7 @@ import { MessengerIcon, ViberIcon, WhatsAppIcon } from "../../_components/brand"
 import { Contact } from "../../_components/contact";
 import { PageHero } from "../../_components/page-hero";
 import { ModelGallery } from "./model-gallery";
+import { ViberLink } from "../../_components/viber-link";
 
 export function generateStaticParams() {
   return models.map((m) => ({ slug: m.id }));
@@ -33,7 +35,8 @@ export function generateStaticParams() {
 function details(model: CarModel) {
   const vehicle = vehicleOf(model);
   const seats = model.seats ?? vehicle.seats;
-  return { vehicle, seats, from: vehicle.rates.butuan, people: seats.replace(/ seats?$/, "") };
+  const rates = ratesOf(model);
+  return { vehicle, seats, rates, from: rates.butuan, people: seats.replace(/ seats?$/, "") };
 }
 
 export async function generateMetadata({ params }: PageProps<"/fleet/[slug]">): Promise<Metadata> {
@@ -90,7 +93,7 @@ function RelatedCard({ model }: { model: CarModel }) {
 export default async function ModelPage({ params }: PageProps<"/fleet/[slug]">) {
   const model = findModel((await params).slug);
   if (!model) notFound();
-  const { vehicle, seats, from, people } = details(model);
+  const { vehicle, seats, rates, from, people } = details(model);
 
   const related = [
     ...models.filter((m) => m.category === model.category && m.id !== model.id),
@@ -188,7 +191,7 @@ export default async function ModelPage({ params }: PageProps<"/fleet/[slug]">) 
                 {zones.map((z) => (
                   <li key={z.id} className="flex justify-between rounded-lg px-3 py-2 odd:bg-white/5">
                     <span className="text-white/65">{z.label}</span>
-                    <span className="font-semibold tabular-nums">{rateText(vehicle.rates[z.id])}</span>
+                    <span className="font-semibold tabular-nums">{rateText(rates[z.id])}</span>
                   </li>
                 ))}
               </ul>
@@ -222,9 +225,9 @@ export default async function ModelPage({ params }: PageProps<"/fleet/[slug]">) 
               </Button>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <Button asChild variant="outline" size="md" className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white">
-                  <a href={site.viber}>
+                  <ViberLink>
                     <ViberIcon /> Viber
-                  </a>
+                  </ViberLink>
                 </Button>
                 <Button asChild variant="outline" size="md" className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white">
                   <a href={site.messenger} target="_blank" rel="noopener noreferrer">

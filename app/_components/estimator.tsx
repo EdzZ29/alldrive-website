@@ -22,6 +22,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SectionHeading } from "./section-heading";
 import { MessengerIcon, ViberIcon, WhatsAppIcon } from "./brand";
 import { BookingDialog } from "./booking-dialog";
+import { ViberLink } from "./viber-link";
 import { DestinationSelect } from "./destination-select";
 
 const vehicleIcons: Record<VehicleId, typeof CarFront> = {
@@ -257,9 +258,9 @@ export function Estimator() {
                 </a>
               </Button>
               <Button asChild variant="glass" size="xl" className="border-white/15 bg-transparent">
-                <a href={site.viber}>
+                <ViberLink>
                   <ViberIcon /> Viber
-                </a>
+                </ViberLink>
               </Button>
             </div>
             <p className="mt-4 text-center text-xs text-white/40">

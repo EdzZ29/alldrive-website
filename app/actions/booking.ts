@@ -58,7 +58,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
 
   // Recompute the estimate on the server instead of trusting the browser.
   const withDriver = mode === "driver";
-  const { total } = estimateTrip(vehicle.id, place.zone, days, withDriver);
+  const { total } = estimateTrip(vehicle.id, place.zone, days, withDriver, model?.id);
   const estimate =
     total == null
       ? `Rate on request${withDriver ? ` (+ ${peso(driverRate)}/day driver)` : ""}`
