@@ -165,7 +165,7 @@ export function Footer() {
           <nav aria-label="Footer" className="lg:col-span-2">
             <p className="text-xs font-bold tracking-[0.2em] text-white/40 uppercase">Explore</p>
             <ul className="mt-5 space-y-3">
-              {nav.map((n) => (
+              {[...nav, { label: "FAQ", href: "/faq" }].map((n) => (
                 <li key={n.href}>
                   <Link href={n.href} className="text-white/70 transition hover:text-brand">
                     {n.label}

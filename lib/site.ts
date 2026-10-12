@@ -27,7 +27,7 @@ export const site = {
   legalName: "AllDrive Rent a Car Butuan",
   tagline: "Rent a Car in Butuan City, Caraga Region",
   description:
-    "AllDrive Rent a Car Butuan: self-drive from ₱1,300/day or with a professional driver, open 24 hours. Toyota Vios, Innova, Fortuner, Hilux, Hiace and more for trips anywhere in Mindanao.",
+    "Rent a car in Butuan City from ₱1,300/day. Self-drive or with a driver, open 24 hours, Bancasi Airport pickup. Toyota Vios, Innova, Fortuner, Hilux, Hiace vans and more for trips across Caraga and Mindanao.",
   // Live domain for SEO links, robots.txt and sitemap.xml. Vercel serves the site on www
   // (alldrivebutuan.com redirects there), so that is the canonical address.
   url: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.alldrivebutuan.com").replace(/\/+$/, ""),

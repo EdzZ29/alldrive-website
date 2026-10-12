@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { site } from "./site";
 
-export const homeTitle = `${site.legalName} | Self-Drive & With Driver`;
+// Leads with what people type into Google ("car rental Butuan"), then the brand.
+export const homeTitle = `Car Rental in Butuan City | ${site.legalName}`;
 
 /**
  * Per-page metadata. Every page sets its own canonical URL and share card, so Search Console

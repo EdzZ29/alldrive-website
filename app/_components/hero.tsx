@@ -42,6 +42,13 @@ export function Hero() {
         </Badge>
 
         <h1 className="mt-6 font-display text-[clamp(3.4rem,11vw,9.5rem)] leading-[0.88] font-extrabold tracking-[-0.035em]">
+          {/* Visible search phrase, part of the H1 so Google reads it as the page topic */}
+          <span
+            className="fade-up mb-5 block font-sans text-sm font-bold tracking-[0.3em] text-white/70 uppercase sm:text-base"
+            style={{ "--d": "40ms" } as React.CSSProperties}
+          >
+            Car Rental in Butuan City
+          </span>
           <span className="rise">
             <span style={{ "--d": "80ms" } as React.CSSProperties}>Every road.</span>
           </span>
@@ -53,8 +60,9 @@ export function Hero() {
         </h1>
 
         <p className="fade-up mt-7 max-w-2xl text-lg leading-relaxed text-pretty text-white/80 sm:text-xl" style={{ "--d": "380ms" } as React.CSSProperties}>
-          Self-drive or with a professional driver. Clean, well-kept sedans, MPVs, SUVs, pickups and vans for city
-          errands, airport runs and road trips across Caraga. Daily, weekly or monthly.
+          Rent a car in Butuan City, self-drive or with a professional driver. Clean, well-kept sedans, MPVs, SUVs,
+          pickups and vans for city errands, Bancasi Airport pickups and road trips across Caraga and Mindanao. Daily,
+          weekly or monthly.
         </p>
 
         <div className="fade-up mt-9 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row" style={{ "--d": "500ms" } as React.CSSProperties}>

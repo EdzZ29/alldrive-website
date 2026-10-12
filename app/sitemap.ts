@@ -14,6 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry("", 1, [`${site.url}/opengraph-image.jpg`]),
     // Main pages
     ...nav.map((n) => entry(n.href, 0.8)),
+    entry("/faq", 0.6),
     // One page per car, with its photos
     ...models.map((m) => entry(modelPath(m.id), 0.7, m.variants.map((v) => `${site.url}${v.image.src}`))),
   ];

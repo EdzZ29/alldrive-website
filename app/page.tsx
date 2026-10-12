@@ -7,6 +7,7 @@ import { DriverFees } from "./_components/driver-fees";
 import { Services } from "./_components/services";
 import { WhyUs } from "./_components/why-us";
 import { Contact } from "./_components/contact";
+import { Faq } from "./_components/faq";
 import { site } from "@/lib/site";
 import { pageMetadata } from "@/lib/seo";
 
@@ -23,6 +24,7 @@ export default function Home() {
       <DriverFees />
       <Services />
       <WhyUs />
+      <Faq limit={6} showAllLink />
       <Contact />
     </main>
   );
