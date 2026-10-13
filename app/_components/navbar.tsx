@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, Menu, Phone } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgePercent, Menu, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { nav, site, whatsappLink } from "@/lib/site";
+import { discountMinDays, nav, quoteHref, site, whatsappLink } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Logo, ViberIcon, WhatsAppIcon } from "./brand";
@@ -30,6 +30,29 @@ export function Navbar() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-5 sm:pt-4">
+      {/* Multi-day discount strip, shown on every page and tucked away once the visitor scrolls */}
+      <div
+        aria-hidden={scrolled}
+        className={cn(
+          "mx-auto grid max-w-7xl transition-all duration-500",
+          scrolled ? "grid-rows-[0fr] opacity-0" : "mb-2 grid-rows-[1fr] opacity-100",
+        )}
+      >
+        <div className="overflow-hidden">
+          <Link
+            href={quoteHref}
+            tabIndex={scrolled ? -1 : undefined}
+            className="group flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-ink sm:text-sm"
+          >
+            <BadgePercent className="size-4 shrink-0" />
+            <span>
+              <span className="font-extrabold">Rent {discountMinDays} days or more and get a discount!</span>
+              <span className="hidden sm:inline"> Get your multi-day quote.</span>
+            </span>
+            <ArrowRight className="size-4 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5" />
+          </Link>
+        </div>
+      </div>
       <nav
         aria-label="Main"
         className={cn(

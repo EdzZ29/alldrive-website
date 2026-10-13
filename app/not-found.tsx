@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <main className="relative flex min-h-[80svh] items-center overflow-hidden bg-ink px-5 pt-32 pb-20 text-white">
+    <main className="relative flex min-h-[80svh] items-center overflow-hidden bg-ink px-5 pt-44 pb-20 text-white">
       <div aria-hidden className="absolute -top-28 -right-28 size-[30rem] animate-float-slow rounded-full border-[3rem] border-white/[0.04]" />
       <div className="relative mx-auto max-w-3xl text-center">
         <p className="text-xs font-bold tracking-[0.25em] text-brand uppercase">Page not found</p>

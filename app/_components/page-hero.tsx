@@ -23,7 +23,7 @@ export function PageHero({
   const trail = [{ label: "Home", href: "/" }, ...crumbs];
 
   return (
-    <section id="top" className="relative overflow-hidden bg-ink px-5 pt-32 pb-16 text-white sm:pt-40 sm:pb-24">
+    <section id="top" className="relative overflow-hidden bg-ink px-5 pt-44 pb-16 text-white sm:pt-52 sm:pb-24">
       <JsonLd
         data={{
           "@context": "https://schema.org",
