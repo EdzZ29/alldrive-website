@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import nodemailer from "nodemailer";
-import { buildBookingEmail, buildCustomerEmail, type BookingDetails } from "@/lib/booking-email";
+import { buildBookingEmail, buildCustomerEmail, type BookingDetails, type BookingMeta, type BusinessContact } from "@/lib/booking-email";
 import { buildCustomerSms, buildOwnerSms, sendSms, toPhMobile } from "@/lib/booking-sms";
 import { driverRate, estimateTrip, fleet, models, peso, places, site, zones, type VehicleId } from "@/lib/site";
 
@@ -33,11 +33,32 @@ function isRateLimited(ip: string) {
 
 const str = (data: FormData, key: string, max = 200) => String(data.get(key) ?? "").trim().slice(0, max);
 
-/** "2026-10-13T10:10" -> "Oct 13, 2026, 10:10 AM" without shifting time zones. */
-function formatLocalDateTime(value: string) {
+/**
+ * "2026-10-13T10:10" -> "Oct 13, 2026, 10:10 AM" without shifting time zones.
+ * `addDays` gives the return date for an n-day rental.
+ */
+function formatLocalDateTime(value: string, addDays = 0) {
   const d = new Date(`${value}:00Z`);
   if (Number.isNaN(d.getTime())) return null;
+  d.setUTCDate(d.getUTCDate() + addDays);
   return d.toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
+}
+
+const business: BusinessContact = {
+  name: site.legalName,
+  phones: site.phones,
+  whatsappNumber: site.whatsappNumber,
+  messenger: site.messenger,
+  address: site.address.full,
+  directionsUrl: site.directionsUrl,
+};
+
+/** Short, easy-to-read booking reference, e.g. "AD-1013-7K2Q" (no 0/O or 1/I mix-ups). */
+function bookingReference() {
+  const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const random = Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => chars[b % chars.length]).join("");
+  const date = new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", timeZone: "Asia/Manila" }).replace("/", "");
+  return `AD-${date}-${random}`;
 }
 
 export async function submitBooking(data: FormData): Promise<BookingResult> {
@@ -58,7 +79,8 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   const mode = str(data, "mode") === "driver" ? "driver" : "self";
   const days = Math.floor(Number(data.get("days")));
   const yearsDriving = str(data, "years", 3);
-  const dateTime = formatLocalDateTime(str(data, "datetime", 20));
+  const rawDateTime = str(data, "datetime", 20);
+  const dateTime = formatLocalDateTime(rawDateTime);
   const place = places.find((p) => p.id === str(data, "placeId"));
   const [vehicleId, modelId] = str(data, "car").split(":") as [VehicleId, string | undefined];
   const vehicle = fleet.find((v) => v.id === vehicleId);
@@ -111,6 +133,11 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
     purpose,
     estimate,
   };
+  const meta: BookingMeta = {
+    reference: bookingReference(),
+    receivedAt: new Date().toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" }),
+    returnDateTime: formatLocalDateTime(rawDateTime, days)!,
+  };
 
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
@@ -132,7 +159,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
           to: BOOKING_TO,
           // "Reply" in Gmail goes straight to the customer when they left an email.
           ...(customerEmail && { replyTo: customerEmail }),
-          ...buildBookingEmail(details),
+          ...buildBookingEmail(details, meta, business),
         })
       : Promise.reject(new Error("Gmail not configured")),
     smsKey ? sendSms(smsKey, SMS_TO, buildOwnerSms(details), smsSender) : Promise.reject(new Error("SMS not configured")),
@@ -152,10 +179,10 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
       : null,
     transporter && customerEmail
       ? transporter.sendMail({
-          from: `"AllDrive Rent a Car Butuan" <${user}>`,
+          from: `"${site.legalName}" <${user}>`,
           to: customerEmail,
           replyTo: BOOKING_TO,
-          ...buildCustomerEmail(details, callNumber),
+          ...buildCustomerEmail(details, meta, business),
         })
       : null,
   ]);
