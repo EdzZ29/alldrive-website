@@ -19,27 +19,26 @@ import c17 from "@/public/images/customers/customer-17.webp";
 import c18 from "@/public/images/customers/customer-18.webp";
 
 /**
- * Customer photos for the gallery. Each has a star rating badge (4.5 to 5.0, picked at random
- * once and saved here so it stays the same on every page load). Add a photo by converting it to
+ * Customer photos for the gallery. Each has a 5.0 star rating badge. Add a photo by converting it to
  * public/images/customers/customer-NN.webp (720x960) and adding a line below.
  */
 export const customerPhotos: { image: StaticImageData; rating: number }[] = [
-  { image: c01, rating: 4.5 },
-  { image: c02, rating: 4.9 },
-  { image: c03, rating: 4.6 },
-  { image: c04, rating: 4.5 },
-  { image: c05, rating: 4.5 },
-  { image: c06, rating: 4.5 },
-  { image: c07, rating: 4.5 },
-  { image: c08, rating: 4.5 },
-  { image: c09, rating: 4.9 },
-  { image: c10, rating: 4.6 },
-  { image: c11, rating: 4.9 },
-  { image: c12, rating: 4.6 },
-  { image: c13, rating: 4.7 },
-  { image: c14, rating: 4.8 },
-  { image: c15, rating: 4.8 },
-  { image: c16, rating: 4.7 },
-  { image: c17, rating: 4.7 },
+  { image: c01, rating: 5.0 },
+  { image: c02, rating: 5.0 },
+  { image: c03, rating: 5.0 },
+  { image: c04, rating: 5.0 },
+  { image: c05, rating: 5.0 },
+  { image: c06, rating: 5.0 },
+  { image: c07, rating: 5.0 },
+  { image: c08, rating: 5.0 },
+  { image: c09, rating: 5.0 },
+  { image: c10, rating: 5.0 },
+  { image: c11, rating: 5.0 },
+  { image: c12, rating: 5.0 },
+  { image: c13, rating: 5.0 },
+  { image: c14, rating: 5.0 },
+  { image: c15, rating: 5.0 },
+  { image: c16, rating: 5.0 },
+  { image: c17, rating: 5.0 },
   { image: c18, rating: 5.0 },
 ];
