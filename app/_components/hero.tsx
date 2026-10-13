@@ -1,7 +1,7 @@
 import Image from "next/image";
-import { ArrowRight, BadgePercent, CarFront, ChevronDown, MapPin } from "lucide-react";
+import { ArrowRight, CarFront, ChevronDown, MapPin } from "lucide-react";
 import fleetImg from "@/public/images/hero-fleet.jpg";
-import { discountMinDays, fleetSizeText, peso, places, site, startingRate } from "@/lib/site";
+import { fleetSizeText, peso, places, site, startingRate } from "@/lib/site";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -65,23 +65,7 @@ export function Hero() {
           weekly or monthly.
         </p>
 
-        <a
-          href="#book"
-          className="fade-up group mt-8 inline-flex items-center gap-3 rounded-2xl border border-brand/50 bg-brand/15 py-2 pr-4 pl-2 text-left backdrop-blur-md transition-colors hover:border-brand hover:bg-brand/25"
-          style={{ "--d": "440ms" } as React.CSSProperties}
-        >
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand text-ink">
-            <BadgePercent className="size-5" />
-          </span>
-          <span className="leading-tight">
-            <span className="block font-display text-base font-extrabold text-brand sm:text-lg">
-              Rent {discountMinDays} days or more and get a discount
-            </span>
-            <span className="text-xs text-white/70 sm:text-sm">Multi-day trips cost less per day. Ask for your rate.</span>
-          </span>
-        </a>
-
-        <div className="fade-up mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row" style={{ "--d": "500ms" } as React.CSSProperties}>
+        <div className="fade-up mt-9 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row" style={{ "--d": "500ms" } as React.CSSProperties}>
           <Button asChild variant="brand" size="xl" className="group">
             <a href="#book">
               <CarFront />
