@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Globe, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { customerPhotos } from "@/lib/customers";
-import { googleRating, site } from "@/lib/site";
+import { foreignCustomerShare, googleRating, site } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 import { GoogleIcon } from "./brand";
@@ -63,10 +63,18 @@ export function CustomersGallery() {
       <div className="mx-auto max-w-7xl px-5">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <SectionHeading index="02" eyebrow="Our customers" title="Happy customers, every trip." dark>
-            Real AllDrive customers with their rentals in Butuan City. Join them on your next trip across Mindanao.
+            Real AllDrive customers with their rentals in Butuan City. {foreignCustomerShare}% of them are foreign travelers. Join
+            them on your next trip across Mindanao.
           </SectionHeading>
 
-          <div data-reveal style={{ "--d": "200ms" } as React.CSSProperties} className="flex items-center gap-3">
+          <div data-reveal style={{ "--d": "200ms" } as React.CSSProperties} className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-2.5">
+              <Globe className="size-6 text-brand" />
+              <span className="leading-tight">
+                <span className="block font-display text-lg font-bold">{foreignCustomerShare}%</span>
+                <span className="text-xs text-white/55">Foreign customers</span>
+              </span>
+            </div>
             <a
               href={site.mapsUrl}
               target="_blank"

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin } from "lucide-react";
+import { BadgePercent, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { driverRate, fleet, models, peso, rateText, regions, vehicleOf, zones, type VehicleId } from "@/lib/site";
+import { discountMinDays, driverRate, fleet, models, peso, rateText, regions, vehicleOf, zones, type VehicleId } from "@/lib/site";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -118,6 +118,13 @@ export function Rates() {
               ))}
             </p>
           ))}
+
+        <p className="mx-auto mt-6 flex max-w-3xl items-center justify-center gap-2.5 rounded-2xl bg-ink px-5 py-3.5 text-center text-sm text-white">
+          <BadgePercent className="size-5 shrink-0 text-brand" />
+          <span>
+            <span className="font-bold text-brand">Rent for {discountMinDays} days or more and get a discount.</span> Ask us for your multi-day rate.
+          </span>
+        </p>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           All rates are per day. Weekly and monthly rates available on inquiry. Prices may vary on holidays and peak seasons.

@@ -76,6 +76,9 @@ export const whatsappLink = (message: string = defaultChatMessage) =>
 // From the Google Business listing. Update the count now and then.
 export const googleRating = { value: "5.0", count: 92 };
 
+/** Share of customers who are foreign travelers, in percent. */
+export const foreignCustomerShare = 60;
+
 /**
  * Clients who have rented from AllDrive. With a `logo` the card shows it; otherwise it shows
  * `short` as a text wordmark. Logos live in public/images/clients.
@@ -361,6 +364,9 @@ export const fromRateOf = (vehicleId: VehicleId) => {
 };
 
 export const driverRate = 1000; // PHP per day
+
+/** Rentals of this many days or more get a discount (amount confirmed upon booking). */
+export const discountMinDays = 2;
 
 export const peso = (n: number, decimals = 0) =>
   "₱" + n.toLocaleString("en-PH", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });

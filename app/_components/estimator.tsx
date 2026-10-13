@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
+  BadgePercent,
   BusFront,
   CarFront,
   CarTaxiFront,
@@ -16,7 +17,7 @@ import {
   Truck,
   UserCheck,
 } from "lucide-react";
-import { driverRate, estimateTrip, findPlace, fleet, peso, site, whatsappLink, zones, type VehicleId } from "@/lib/site";
+import { discountMinDays, driverRate, estimateTrip, findPlace, fleet, peso, site, whatsappLink, zones, type VehicleId } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -238,6 +239,14 @@ export function Estimator() {
                   {total == null ? <span className="text-2xl sm:text-3xl">On request</span> : peso(shownTotal)}
                 </p>
               </div>
+              {days >= discountMinDays && (
+                <p className="mt-4 flex animate-pop-in items-center gap-2 rounded-xl bg-brand/15 px-3.5 py-2.5 text-sm text-white">
+                  <BadgePercent className="size-4 shrink-0 text-brand" />
+                  <span>
+                    <span className="font-semibold text-brand">Multi-day discount.</span> Your {days}-day rental qualifies. Final price confirmed upon booking.
+                  </span>
+                </p>
+              )}
             </div>
 
             <BookingDialog defaults={{ vehicleId, placeId, days, mode }}>
