@@ -56,6 +56,16 @@ function ModelCard({ model, index }: { model: CarModel; index: number }) {
         <Badge variant="secondary" className="absolute top-3 left-3 h-6 px-3 text-[11px] font-bold tracking-wider uppercase">
           {vehicle.short}
         </Badge>
+        <Badge
+          variant="outline"
+          className="absolute top-3 right-3 h-6 gap-1.5 border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-bold tracking-wider text-emerald-700 uppercase"
+        >
+          <span className="relative flex size-2">
+            <span className="absolute inset-0 animate-ping-slow rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative size-full rounded-full bg-emerald-500" />
+          </span>
+          Available
+        </Badge>
       </Link>
 
       <CardContent className="flex flex-1 flex-col px-3.5 pt-4">
