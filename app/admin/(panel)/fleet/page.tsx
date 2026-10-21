@@ -4,6 +4,8 @@ import { Loader2 } from "lucide-react";
 import { FleetView } from "./fleet-view";
 
 export const metadata: Metadata = { title: "Fleet & prices" };
+// Rendered only after the browser confirms the sign-in (see the panel layout).
+export const instant = false;
 
 export default function AdminFleetPage() {
   return (

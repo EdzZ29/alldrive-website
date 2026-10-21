@@ -4,6 +4,8 @@ import { Loader2 } from "lucide-react";
 import { InquiriesView } from "./inquiries-view";
 
 export const metadata: Metadata = { title: "Inquiries" };
+// Rendered only after the browser confirms the sign-in (see the panel layout).
+export const instant = false;
 
 export default function AdminInquiriesPage() {
   return (

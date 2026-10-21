@@ -4,6 +4,8 @@ import { Loader2 } from "lucide-react";
 import { BookingsView } from "./bookings-view";
 
 export const metadata: Metadata = { title: "Bookings" };
+// Rendered only after the browser confirms the sign-in (see the panel layout).
+export const instant = false;
 
 export default function AdminBookingsPage() {
   return (
