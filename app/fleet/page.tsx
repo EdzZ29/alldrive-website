@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CarFront } from "lucide-react";
-import { fleetSizeText, peso, quoteHref, startingRate } from "@/lib/site";
+import { fleetSizeText, peso, quoteHref } from "@/lib/site";
+import { getCatalog } from "@/lib/catalog";
 import { pageMetadata } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "../_components/page-hero";
@@ -8,13 +9,17 @@ import { Fleet } from "../_components/fleet";
 import { Estimator } from "../_components/estimator";
 import { Contact } from "../_components/contact";
 
-export const metadata = pageMetadata({
-  title: "Our Fleet: Cars, SUVs & Vans for Rent in Butuan City",
-  description: `Browse ${fleetSizeText} AllDrive rental cars in Butuan City: Toyota Vios, Innova, Avanza, Fortuner, Montero Sport, Hilux, Navara, Triton, Hiace and more. Self-drive from ${peso(startingRate)}/day or with a driver.`,
-  path: "/fleet",
-});
+export async function generateMetadata() {
+  const { startingRate } = await getCatalog();
+  return pageMetadata({
+    title: "Our Fleet: Cars, SUVs & Vans for Rent in Butuan City",
+    description: `Browse ${fleetSizeText} AllDrive rental cars in Butuan City: Toyota Vios, Innova, Avanza, Fortuner, Montero Sport, Hilux, Navara, Triton, Hiace and more. Self-drive from ${peso(startingRate)}/day or with a driver.`,
+    path: "/fleet",
+  });
+}
 
-export default function FleetPage() {
+export default async function FleetPage() {
+  const { startingRate } = await getCatalog();
   return (
     <main>
       <PageHero

@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { BadgeCheck, CarFront, Clock, MessagesSquare, Receipt, ShieldCheck, Sparkles, Wallet } from "lucide-react";
 import brandImg from "@/public/images/alldrive.jpg";
-import { fleetSize, places, site, startingRate, whatsappLink } from "@/lib/site";
+import { fleetSize, places, site, whatsappLink } from "@/lib/site";
+import { getCatalog } from "@/lib/catalog";
 import { ViberIcon, WhatsAppIcon } from "./brand";
 import { ViberLink } from "./viber-link";
 import { CountUp } from "./count-up";
@@ -24,7 +25,8 @@ const steps = [
   { icon: BadgeCheck, title: "Hit the road", body: "Grab the keys, or meet your driver, and enjoy the trip." },
 ];
 
-export function WhyUs() {
+export async function WhyUs() {
+  const { startingRate } = await getCatalog();
   return (
     <section className="bg-white py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-5">

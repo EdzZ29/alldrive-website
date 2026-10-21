@@ -117,6 +117,27 @@ export const nav = [
 /** Where the instant quote lives (the estimator section). */
 export const quoteHref = "/rates#book";
 
+/** What renters need, shown in step 3 of the booking form. Edit here to change it. */
+export const rentalRequirements = {
+  everyone: [
+    "One valid government-issued ID (Student ID is not accepted)",
+    "50% down payment to reserve the car, by GCash, Maya, bank transfer or cash",
+  ],
+  selfDrive: ["Valid driver's license"],
+  withDriver: ["The driver's meals during the trip, and lodging on overnight trips, are shouldered by the renter"],
+} as const;
+
+/** What a contact-form inquiry can be about. */
+export const inquiryTopics = [
+  "Rates & availability",
+  "Airport pickup",
+  "With-driver trips",
+  "Long-term or monthly rental",
+  "Corporate, events & weddings",
+  "Existing booking",
+  "Other",
+] as const;
+
 // Rate zones. Every Mindanao destination below maps to one of these.
 export const zones = [
   { id: "butuan", label: "Butuan City", short: "Butuan" },
@@ -248,7 +269,8 @@ export type Vehicle = {
   rates: Record<ZoneId, number | null>;
 };
 
-export const fleet: Vehicle[] = [
+// Built-in car classes. Their rates can be changed in the admin dashboard (see getCatalog).
+export const builtInFleet: Vehicle[] = [
   {
     id: "sedan",
     name: "Sedan",
@@ -294,13 +316,17 @@ export type CarModel = {
   category: VehicleId;
   seats?: string;
   specs?: string[];
-  variants: { label: string; color: string; image: StaticImageData }[];
+  /** Photos: built-in images, then any the admin added (URLs). */
+  variants: { label: string; color: string; image: StaticImageData | string }[];
   /** Own daily rates when this car is priced differently from its category. */
   rates?: Record<ZoneId, number | null>;
+  /** Set by the admin: unavailable cars stay listed with a "Not available" badge. */
+  availability?: "available" | "unavailable";
 };
 
-// The actual cars in the fleet. Multiple variants = available colors.
-export const models: CarModel[] = [
+// The actual cars in the fleet, as built in. Multiple variants = available colors. The admin
+// dashboard can hide them, change their rates and add photos (see getCatalog).
+export const builtInModels: CarModel[] = [
   {
     id: "toyota-vios",
     name: "Toyota Vios",
@@ -353,17 +379,8 @@ export const fleetSize = 30;
 export const fleetSizeText = `${fleetSize}+`;
 
 export const modelPath = (id: string) => `/fleet/${id}`;
-export const findModel = (id: string) => models.find((m) => m.id === id);
-export const vehicleOf = (model: CarModel) => fleet.find((v) => v.id === model.category)!;
-/** A car's daily rates: its own if set, otherwise its category's. */
-export const ratesOf = (model: CarModel) => model.rates ?? vehicleOf(model).rates;
-/** Cheapest Butuan rate among the cars in a category (null if all are on request). */
-export const fromRateOf = (vehicleId: VehicleId) => {
-  const rates = models.filter((m) => m.category === vehicleId).flatMap((m) => (ratesOf(m).butuan == null ? [] : [ratesOf(m).butuan!]));
-  return rates.length ? Math.min(...rates) : null;
-};
 
-export const driverRate = 1000; // PHP per day
+export const builtInDriverRate = 1000; // PHP per day
 
 /** Rentals of this many days or more get a discount (amount confirmed upon booking). */
 export const discountMinDays = 2;
@@ -374,17 +391,91 @@ export const peso = (n: number, decimals = 0) =>
 /** Formats a rate, or "On request" when there is no fixed rate. */
 export const rateText = (n: number | null, decimals = 0) => (n == null ? "On request" : peso(n, decimals));
 
-export const startingRate = Math.min(...fleet.flatMap((v) => (v.rates.butuan == null ? [] : [v.rates.butuan])));
+// ---------- Catalog: the fleet as shown on the site, after the admin dashboard's changes ----------
+
+export type Rates = Record<ZoneId, number | null>;
+
+/** The admin's changes, as stored by the backend (GET /api/catalog). */
+export type CatalogOverrides = {
+  classes: Partial<Record<VehicleId, { rates: Rates }>>;
+  models: Record<string, { availability: "available" | "unavailable" | "hidden"; rates: Rates | null; photos: { url: string; label: string; color: string }[] }>;
+  driverRate: number | null;
+};
+
+/** Plain data (safe to cache and to pass to client components). */
+export type CatalogData = { fleet: Vehicle[]; models: CarModel[]; driverRate: number };
+
+const zoneIds = zones.map((z) => z.id);
+const isRate = (v: unknown): v is number | null => v === null || (typeof v === "number" && Number.isFinite(v) && v >= 0);
+/** Accepts only a complete, valid rates object; anything else keeps the built-in rates. */
+const validRates = (r: unknown): Rates | null =>
+  r && typeof r === "object" && zoneIds.every((z) => isRate((r as Record<string, unknown>)[z]))
+    ? (Object.fromEntries(zoneIds.map((z) => [z, (r as Record<string, number | null>)[z]])) as Rates)
+    : null;
+// Only https images or the backend's /uploads (served through this site; see next.config.ts).
+const validPhotoUrl = (u: unknown): u is string => typeof u === "string" && /^(https:\/\/\S+|\/uploads\/[\w.-]+)$/.test(u);
 
 /**
- * Trip estimate used by both the estimator and the booking form. Pass modelId to use a car's own
- * rates (e.g. the Innova). total is null when the rate is on request.
+ * Applies the admin's changes to the built-in fleet. With no changes (or no backend) the result
+ * is exactly the built-in fleet. `includeHidden` keeps hidden models (for the admin's own view).
  */
-export function estimateTrip(vehicleId: VehicleId, zoneId: ZoneId, days: number, withDriver: boolean, modelId?: string) {
-  const vehicle = fleet.find((v) => v.id === vehicleId)!;
-  const model = modelId ? models.find((m) => m.id === modelId && m.category === vehicleId) : undefined;
-  const dailyRate = (model ? ratesOf(model) : vehicle.rates)[zoneId];
-  const rental = dailyRate == null ? null : dailyRate * days;
-  const driver = withDriver ? driverRate * days : 0;
-  return { vehicle, dailyRate, rental, driver, total: rental == null ? null : rental + driver };
+export function mergeCatalog(overrides: CatalogOverrides | null, { includeHidden = false } = {}): CatalogData {
+  const fleet = builtInFleet.map((v) => ({ ...v, rates: validRates(overrides?.classes?.[v.id]?.rates) ?? v.rates }));
+  const models = builtInModels.flatMap((m): CarModel[] => {
+    const o = overrides?.models?.[m.id];
+    if (!o) return [m];
+    if (o.availability === "hidden" && !includeHidden) return [];
+    const photos = Array.isArray(o.photos) ? o.photos.filter((p) => p && validPhotoUrl(p.url)) : [];
+    return [
+      {
+        ...m,
+        rates: validRates(o.rates) ?? m.rates,
+        availability: o.availability === "unavailable" ? "unavailable" : "available",
+        variants: [
+          ...m.variants,
+          ...photos.map((p) => ({ label: String(p.label || "Photo").slice(0, 40), color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : "#c4c8cc", image: p.url })),
+        ],
+      },
+    ];
+  });
+  const driverRate = isRate(overrides?.driverRate) && overrides.driverRate !== null ? overrides.driverRate : builtInDriverRate;
+  return { fleet, models, driverRate };
 }
+
+/** Lookups and price math over one catalog (the same everywhere: pages, booking form, server). */
+export function catalogFrom(data: CatalogData) {
+  const { fleet, models, driverRate } = data;
+  const vehicleOf = (model: CarModel) => fleet.find((v) => v.id === model.category)!;
+  /** A car's daily rates: its own if set, otherwise its category's. */
+  const ratesOf = (model: CarModel) => model.rates ?? vehicleOf(model).rates;
+  const findModel = (id: string) => models.find((m) => m.id === id);
+  /** Cheapest Butuan rate among the cars in a category (null if all are on request). */
+  const fromRateOf = (vehicleId: VehicleId) => {
+    const rates = models.filter((m) => m.category === vehicleId).flatMap((m) => (ratesOf(m).butuan == null ? [] : [ratesOf(m).butuan!]));
+    return rates.length ? Math.min(...rates) : null;
+  };
+  const classStart = fleet.flatMap((v) => (v.rates.butuan == null ? [] : [v.rates.butuan]));
+  const modelStart = models.flatMap((m) => (ratesOf(m).butuan == null ? [] : [ratesOf(m).butuan!]));
+  /** Cheapest Butuan self-drive day rate, for "from ₱…" texts. */
+  const startingRate = Math.min(...(classStart.length ? classStart : modelStart.length ? modelStart : [1300]));
+
+  /**
+   * Trip estimate used by both the estimator and the booking form. Pass modelId to use a car's
+   * own rates (e.g. the Innova). total is null when the rate is on request.
+   */
+  function estimateTrip(vehicleId: VehicleId, zoneId: ZoneId, days: number, withDriver: boolean, modelId?: string) {
+    const vehicle = fleet.find((v) => v.id === vehicleId)!;
+    const model = modelId ? models.find((m) => m.id === modelId && m.category === vehicleId) : undefined;
+    const dailyRate = (model ? ratesOf(model) : vehicle.rates)[zoneId];
+    const rental = dailyRate == null ? null : dailyRate * days;
+    const driver = withDriver ? driverRate * days : 0;
+    return { vehicle, dailyRate, rental, driver, total: rental == null ? null : rental + driver };
+  }
+
+  return { ...data, vehicleOf, ratesOf, findModel, fromRateOf, startingRate, estimateTrip };
+}
+
+export type Catalog = ReturnType<typeof catalogFrom>;
+
+/** Photo source for next/image: built-in images are optimized; admin uploads are used as-is. */
+export const isUploadedPhoto = (image: StaticImageData | string): image is string => typeof image === "string";

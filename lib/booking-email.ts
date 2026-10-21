@@ -284,17 +284,11 @@ export function buildCustomerEmail(d: BookingDetails, meta: BookingMeta, busines
     { label: "Messenger", href: business.messenger, bg: "#0a7cff", fg: "#ffffff" },
   ];
 
-  const steps = [
-    ["Booking received", `We got your request on ${meta.receivedAt}.`],
-    ["We confirm", `Our team will call or text ${d.contact} to confirm the car and final rate.`],
-    ["Your rental starts", `${d.dateTime}. We're open 24 hours if you need us.`],
-  ];
-
   const text = [
     `Hi ${firstName},`,
     "",
-    `Thank you for booking with ${business.name}. We received your request (reference ${meta.reference}).`,
-    `What's next: our team will call or text you at ${d.contact} to confirm the car and the final rate.`,
+    `Thank you for booking with ${business.name}. We received your request (reference ${meta.reference}) and will contact you at ${d.contact} to confirm availability and the final rate.`,
+    `Once your car is confirmed, you'll get a "Booking Confirmed" message with your pickup day and time.`,
     "",
     plainSection("Your trip", trip),
     `Estimated total: ${d.estimate}`,
@@ -314,24 +308,8 @@ export function buildCustomerEmail(d: BookingDetails, meta: BookingMeta, busines
     [
       header("Booking request received", d.car, `${d.dateTime} · ${plural(d.days, "day")} · ${d.service}`, meta.reference),
       textBlock(
-        `Hi ${escapeHtml(firstName)},<br>Thank you for booking with ${escapeHtml(business.name)}! We received your request and will contact you at <b>${escapeHtml(d.contact)}</b> soon to confirm availability and the final rate.`,
+        `Hi ${escapeHtml(firstName)},<br>Thank you for booking with ${escapeHtml(business.name)}! We received your request and will contact you at <b>${escapeHtml(d.contact)}</b> soon to confirm availability and the final rate.<br><br>Once your car is confirmed, you'll get a <b>Booking Confirmed</b> message with your pickup day and time.`,
       ),
-      `<tr><td style="padding:16px 24px 0">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;line-height:1.45">
-          ${steps
-            .map(
-              ([title, note], i) => `<tr>
-            <td width="34" style="vertical-align:top;padding:6px 0">
-              <div style="width:26px;height:26px;line-height:26px;border-radius:13px;text-align:center;font-size:13px;font-weight:bold;${
-                i === 0 ? `background:${C.green};color:#ffffff` : `background:${C.bg};color:${C.muted}`
-              }">${i === 0 ? "&#10003;" : i + 1}</div>
-            </td>
-            <td style="vertical-align:top;padding:6px 0"><b>${escapeHtml(title)}</b><br><span style="color:${C.muted}">${escapeHtml(note)}</span></td>
-          </tr>`,
-            )
-            .join("")}
-        </table>
-      </td></tr>`,
       estimateBox(d.estimate, estimateNote),
       section("Your trip", trip),
       section("Your details", you),

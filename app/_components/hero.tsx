@@ -1,11 +1,13 @@
 import Image from "next/image";
 import { ArrowRight, CarFront, ChevronDown, MapPin } from "lucide-react";
 import fleetImg from "@/public/images/hero-fleet.jpg";
-import { fleetSizeText, peso, places, site, startingRate } from "@/lib/site";
+import { fleetSizeText, peso, places, site } from "@/lib/site";
+import { getCatalog } from "@/lib/catalog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export function Hero() {
+export async function Hero() {
+  const { startingRate } = await getCatalog();
   return (
     <section id="top" className="relative flex min-h-[100svh] items-center overflow-hidden bg-ink pt-40 pb-24 text-white sm:pt-44 lg:pb-28">
       {/* Fleet photo background with a solid dark overlay */}

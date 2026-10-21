@@ -1,4 +1,5 @@
-import { faqs } from "@/lib/faq";
+import { faqsFor } from "@/lib/faq";
+import { getCatalog } from "@/lib/catalog";
 import { pageMetadata } from "@/lib/seo";
 import { Faq } from "../_components/faq";
 import { JsonLd } from "../_components/json-ld";
@@ -12,7 +13,8 @@ export const metadata = pageMetadata({
   path: "/faq",
 });
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const faqs = faqsFor(await getCatalog());
   return (
     <main>
       <JsonLd

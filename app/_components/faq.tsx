@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Plus } from "lucide-react";
-import { faqs } from "@/lib/faq";
+import { faqsFor } from "@/lib/faq";
+import { getCatalog } from "@/lib/catalog";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "./section-heading";
 
@@ -8,7 +9,8 @@ import { SectionHeading } from "./section-heading";
  * Common questions. Uses native <details> so every answer stays in the HTML (readable by Google)
  * even while collapsed.
  */
-export function Faq({ limit, showAllLink = false }: { limit?: number; showAllLink?: boolean }) {
+export async function Faq({ limit, showAllLink = false }: { limit?: number; showAllLink?: boolean }) {
+  const faqs = faqsFor(await getCatalog());
   const shown = limit ? faqs.slice(0, limit) : faqs;
 
   return (

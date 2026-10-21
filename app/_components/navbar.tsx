@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type ComponentProps } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, ArrowUpRight, BadgePercent, Menu, Phone } from "lucide-react";
@@ -15,11 +15,23 @@ import { ChatMenu } from "./chat-menu";
 
 const smart = site.phones[0];
 
+/**
+ * Nav link marked aria-current on its own section. It reads the URL, which isn't known while
+ * Next.js prerenders the shared shell of a dynamic route (e.g. /fleet/[slug]), so render it inside
+ * <Suspense> or only after the page has loaded.
+ */
+function NavLink({ href, ...props }: ComponentProps<typeof Link> & { href: string }) {
+  const pathname = usePathname();
+  const active = pathname === href || pathname.startsWith(`${href}/`);
+  return <Link href={href} aria-current={active ? "page" : undefined} {...props} />;
+}
+
+const desktopLink =
+  "group relative rounded-full px-4 py-2 text-sm font-medium text-white/75 transition-colors hover:text-white aria-[current=page]:text-white";
+
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -69,14 +81,20 @@ export function Navbar() {
         <ul className="hidden items-center gap-1 lg:flex">
           {nav.map((item) => (
             <li key={item.href}>
-              <Link
-                href={item.href}
-                aria-current={isActive(item.href) ? "page" : undefined}
-                className="group relative rounded-full px-4 py-2 text-sm font-medium text-white/75 transition-colors hover:text-white aria-[current=page]:text-white"
+              {/* Same link without the current-page mark until the URL is known. */}
+              <Suspense
+                fallback={
+                  <Link href={item.href} className={desktopLink}>
+                    {item.label}
+                    <span className="absolute inset-x-4 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-brand transition-transform duration-300 group-hover:scale-x-100" />
+                  </Link>
+                }
               >
-                {item.label}
-                <span className="absolute inset-x-4 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-brand transition-transform duration-300 group-hover:scale-x-100 group-aria-[current=page]:scale-x-100" />
-              </Link>
+                <NavLink href={item.href} className={desktopLink}>
+                  {item.label}
+                  <span className="absolute inset-x-4 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-brand transition-transform duration-300 group-hover:scale-x-100 group-aria-[current=page]:scale-x-100" />
+                </NavLink>
+              </Suspense>
             </li>
           ))}
         </ul>
@@ -124,14 +142,14 @@ export function Navbar() {
                 {nav.map((item, i) => (
                   <li key={item.href} className="animate-pop-in" style={{ animationDelay: `${80 + i * 50}ms` }}>
                     <SheetClose asChild>
-                      <Link
+                      {/* The menu only renders once opened, so the URL is always known here. */}
+                      <NavLink
                         href={item.href}
-                        aria-current={isActive(item.href) ? "page" : undefined}
                         className="flex items-center justify-between rounded-xl px-3 py-3.5 font-display text-2xl font-semibold transition-colors hover:bg-white/5 aria-[current=page]:bg-white/5 aria-[current=page]:text-brand"
                       >
                         {item.label}
                         <ArrowUpRight className="size-5 text-brand" />
-                      </Link>
+                      </NavLink>
                     </SheetClose>
                   </li>
                 ))}

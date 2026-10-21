@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { BadgePercent, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { discountMinDays, driverRate, fleet, models, peso, rateText, regions, vehicleOf, zones, type VehicleId } from "@/lib/site";
+import { discountMinDays, peso, rateText, regions, zones, type VehicleId } from "@/lib/site";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SectionHeading } from "./section-heading";
+import { useCatalog } from "./catalog-provider";
 
 export function Rates() {
+  const { fleet, models, driverRate, vehicleOf } = useCatalog();
   const [hoverCol, setHoverCol] = useState<VehicleId | null>(null);
 
   return (
@@ -198,6 +200,7 @@ export function Rates() {
 }
 
 function ZoneHeader({ zoneId }: { zoneId: (typeof zones)[number]["id"] }) {
+  const { fleet } = useCatalog();
   const zone = zones.find((z) => z.id === zoneId)!;
   const sedan = fleet.find((v) => v.id === "sedan")!.rates[zoneId];
   return (

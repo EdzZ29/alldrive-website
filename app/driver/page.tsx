@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CarFront } from "lucide-react";
-import { driverRate, peso, quoteHref } from "@/lib/site";
+import { peso, quoteHref } from "@/lib/site";
+import { getCatalog } from "@/lib/catalog";
 import { pageMetadata } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "../_components/page-hero";
@@ -8,13 +9,17 @@ import { DriverFees } from "../_components/driver-fees";
 import { Estimator } from "../_components/estimator";
 import { Contact } from "../_components/contact";
 
-export const metadata = pageMetadata({
-  title: "Car Rental with Driver in Butuan City",
-  description: `Rent a car with a professional driver in Butuan City for ${peso(driverRate)}/day, the same rate for any destination in Mindanao. Airport transfers, business trips, tours and weddings.`,
-  path: "/driver",
-});
+export async function generateMetadata() {
+  const { driverRate } = await getCatalog();
+  return pageMetadata({
+    title: "Car Rental with Driver in Butuan City",
+    description: `Rent a car with a professional driver in Butuan City for ${peso(driverRate)}/day, the same rate for any destination in Mindanao. Airport transfers, business trips, tours and weddings.`,
+    path: "/driver",
+  });
+}
 
-export default function DriverPage() {
+export default async function DriverPage() {
+  const { driverRate } = await getCatalog();
   return (
     <main>
       <PageHero

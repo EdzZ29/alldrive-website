@@ -5,7 +5,9 @@ import { Navbar } from "./_components/navbar";
 import { Footer } from "./_components/contact";
 import { JsonLd } from "./_components/json-ld";
 import { Analytics } from "@vercel/analytics/next";
-import { driverRate, fleet, site, startingRate } from "@/lib/site";
+import { catalogFrom, site, type Catalog } from "@/lib/site";
+import { getCatalogData } from "@/lib/catalog";
+import { CatalogProvider } from "./_components/catalog-provider";
 import { homeTitle } from "@/lib/seo";
 import "./globals.css";
 
@@ -91,7 +93,8 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
-const jsonLd = {
+function businessJsonLd({ fleet, driverRate, startingRate }: Catalog) {
+  return {
   "@context": "https://schema.org",
   "@type": "AutoRental",
   "@id": `${site.url}/#business`,
@@ -152,9 +155,13 @@ const jsonLd = {
       itemOffered: { "@type": "Service", name: "Professional driver service", serviceType: "Chauffeur service" },
     }),
   },
-};
+  };
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Fleet, prices and photos as edited in the admin dashboard (built-in fleet as fallback).
+  const catalogData = await getCatalogData();
+  const jsonLd = businessJsonLd(catalogFrom(catalogData));
   return (
     <html lang="en-PH" data-scroll-behavior="smooth" className={`${geist.variable} ${bricolage.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">
@@ -162,9 +169,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <noscript>
           <style>{`[data-reveal]{opacity:1!important;transform:none!important}`}</style>
         </noscript>
-        <Navbar />
-        {children}
-        <Footer />
+        <CatalogProvider data={catalogData}>
+          <Navbar />
+          {children}
+          <Footer />
+        </CatalogProvider>
         <RevealObserver />
         <Analytics />
       </body>

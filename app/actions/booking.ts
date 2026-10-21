@@ -4,7 +4,10 @@ import { headers } from "next/headers";
 import nodemailer from "nodemailer";
 import { buildBookingEmail, buildCustomerEmail, type BookingDetails, type BookingMeta, type BusinessContact } from "@/lib/booking-email";
 import { buildCustomerSms, buildOwnerSms, sendSms, toPhMobile } from "@/lib/booking-sms";
-import { driverRate, estimateTrip, fleet, models, peso, places, site, zones, type VehicleId } from "@/lib/site";
+import { dashboardConfigured, sendBookingToDashboard } from "@/lib/dashboard";
+import { createRateLimiter } from "@/lib/rate-limit";
+import { peso, places, site, zones, type VehicleId } from "@/lib/site";
+import { getCatalog } from "@/lib/catalog";
 
 export type BookingResult = { ok: true } | { ok: false; error: string };
 
@@ -15,21 +18,12 @@ const SMS_TO = (process.env.BOOKING_SMS_TO || site.phones.map((p) => p.display).
   .map((n) => toPhMobile(n))
   .filter((n): n is string => n !== null);
 const SMS_CONFIRM_CUSTOMER = process.env.BOOKING_SMS_CONFIRM_CUSTOMER !== "false";
+// The customer's "we received your booking" email. (The "confirmed" email comes from the
+// dashboard when an admin approves the booking.)
+const EMAIL_CONFIRM_CUSTOMER = process.env.BOOKING_EMAIL_CONFIRM_CUSTOMER !== "false";
 
 // Each booking sends emails and paid texts, so one visitor can only send a few in a row.
-// Kept in memory, so it resets when the server restarts; enough to stop someone spamming the form.
-const RATE_LIMIT = 5;
-const RATE_WINDOW_MS = 30 * 60 * 1000;
-const recentBookings = new Map<string, number[]>();
-
-function isRateLimited(ip: string) {
-  const now = Date.now();
-  const recent = (recentBookings.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-  if (recent.length >= RATE_LIMIT) return true;
-  recentBookings.set(ip, [...recent, now]);
-  if (recentBookings.size > 5000) recentBookings.delete(recentBookings.keys().next().value!);
-  return false;
-}
+const isRateLimited = createRateLimiter(5);
 
 const str = (data: FormData, key: string, max = 200) => String(data.get(key) ?? "").trim().slice(0, max);
 
@@ -82,6 +76,8 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   const rawDateTime = str(data, "datetime", 20);
   const dateTime = formatLocalDateTime(rawDateTime);
   const place = places.find((p) => p.id === str(data, "placeId"));
+  // Same fleet and prices the visitor saw (as edited in the admin dashboard).
+  const { fleet, models, driverRate, estimateTrip } = await getCatalog();
   const [vehicleId, modelId] = str(data, "car").split(":") as [VehicleId, string | undefined];
   const vehicle = fleet.find((v) => v.id === vehicleId);
   const model = models.find((m) => m.id === modelId && m.category === vehicleId);
@@ -143,30 +139,62 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   const pass = process.env.GMAIL_APP_PASSWORD;
   const smsKey = process.env.SEMAPHORE_API_KEY;
   const smsSender = process.env.SEMAPHORE_SENDER_NAME || undefined;
-  if (!user || !pass) console.error("Booking email not sent: set GMAIL_USER and GMAIL_APP_PASSWORD.");
+  if (!dashboardConfigured) console.error("Booking not saved to the dashboard: set ALLDRIVE_API_URL and ALLDRIVE_API_KEY.");
   if (!smsKey) console.error("Booking SMS not sent: set SEMAPHORE_API_KEY.");
-  if ((!user || !pass) && !smsKey) {
+  if (!dashboardConfigured && (!user || !pass)) console.error("Backup booking email not possible: set GMAIL_USER and GMAIL_APP_PASSWORD.");
+  if (!dashboardConfigured && (!user || !pass) && !smsKey) {
     return { ok: false, error: "Online booking is temporarily unavailable. Please text or message us instead." };
   }
 
   const transporter = user && pass ? nodemailer.createTransport({ service: "gmail", auth: { user, pass } }) : null;
 
-  // Email and team SMS go out together; the booking counts as received if either one arrives.
-  const [email, sms] = await Promise.allSettled([
-    transporter
-      ? transporter.sendMail({
-          from: `"AllDrive Website" <${user}>`,
-          to: BOOKING_TO,
-          // "Reply" in Gmail goes straight to the customer when they left an email.
-          ...(customerEmail && { replyTo: customerEmail }),
-          ...buildBookingEmail(details, meta, business),
+  // Bookings go to the admin dashboard (plus the team SMS, if set up). The team Gmail only gets
+  // the booking as a backup when the dashboard can't be reached, so nothing is lost.
+  const [dashboard, sms] = await Promise.allSettled([
+    dashboardConfigured
+      ? sendBookingToDashboard({
+          reference: meta.reference,
+          name,
+          contact,
+          ...(customerEmail && { email: customerEmail }),
+          address,
+          work,
+          destination: place.name,
+          zone: details.zone,
+          ...(specificPlace && { specificPlace }),
+          pickup: rawDateTime,
+          days,
+          driveType: withDriver ? "With Driver" : "Self Drive",
+          ...(!withDriver && { yearsDriving: Math.floor(Number(yearsDriving)) || 0 }),
+          carCategory: vehicle.id,
+          ...(model && { carModel: model.id }),
+          carLabel: details.car,
+          purpose,
+          ...(total != null && { estimatedTotal: total }),
+          estimateText: estimate,
         })
-      : Promise.reject(new Error("Gmail not configured")),
+      : Promise.reject(new Error("Dashboard not configured")),
     smsKey ? sendSms(smsKey, SMS_TO, buildOwnerSms(details), smsSender) : Promise.reject(new Error("SMS not configured")),
   ]);
-  if (email.status === "rejected" && transporter) console.error("Booking email failed:", email.reason);
+  if (dashboard.status === "rejected" && dashboardConfigured) console.error("Booking dashboard save failed:", dashboard.reason);
+
+  // Backup only: email the booking to the team if the dashboard didn't get it.
+  const [email] = await Promise.allSettled([
+    dashboard.status === "fulfilled"
+      ? Promise.reject(new Error("Not needed: the dashboard has it"))
+      : transporter
+        ? transporter.sendMail({
+            from: `"AllDrive Website" <${user}>`,
+            to: BOOKING_TO,
+            // "Reply" in Gmail goes straight to the customer when they left an email.
+            ...(customerEmail && { replyTo: customerEmail }),
+            ...buildBookingEmail(details, meta, business),
+          })
+        : Promise.reject(new Error("Gmail not configured")),
+  ]);
+  if (dashboard.status === "rejected" && email.status === "rejected") console.error("Backup booking email failed:", email.reason);
   if (sms.status === "rejected" && smsKey) console.error("Booking SMS failed:", sms.reason);
-  if (email.status === "rejected" && sms.status === "rejected") {
+  if (dashboard.status === "rejected" && email.status === "rejected" && sms.status === "rejected") {
     return { ok: false, error: "We couldn't send your booking right now. Please text or message us instead." };
   }
 
@@ -177,7 +205,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
     smsKey && SMS_CONFIRM_CUSTOMER && customerNumber
       ? sendSms(smsKey, [customerNumber], buildCustomerSms(details, callNumber), smsSender)
       : null,
-    transporter && customerEmail
+    transporter && customerEmail && EMAIL_CONFIRM_CUSTOMER
       ? transporter.sendMail({
           from: `"${site.legalName}" <${user}>`,
           to: customerEmail,

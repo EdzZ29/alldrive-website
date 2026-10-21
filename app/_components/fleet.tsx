@@ -5,25 +5,22 @@ import Link from "next/link";
 import { useState } from "react";
 import { CalendarCheck, Check, ChevronDown, Snowflake, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fleet, fleetSizeText, modelPath, models, rateText, ratesOf, zones, type CarModel, type VehicleId } from "@/lib/site";
+import { fleetSizeText, isUploadedPhoto, modelPath, rateText, zones, type CarModel, type VehicleId } from "@/lib/site";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookingDialog } from "./booking-dialog";
+import { useCatalog } from "./catalog-provider";
 import { SectionHeading } from "./section-heading";
 
 type Filter = "all" | VehicleId;
 
-const filters: { id: Filter; label: string; count: number }[] = [
-  { id: "all", label: "All", count: models.length },
-  ...fleet.map((v) => ({ id: v.id, label: v.short, count: models.filter((m) => m.category === v.id).length })),
-];
-
 function ModelCard({ model, index }: { model: CarModel; index: number }) {
   const [variant, setVariant] = useState(0);
-  const vehicle = fleet.find((v) => v.id === model.category)!;
+  const { vehicleOf, ratesOf } = useCatalog();
+  const vehicle = vehicleOf(model);
   const current = model.variants[variant];
   const rates = ratesOf(model);
   const fromRate = rates.butuan;
@@ -41,11 +38,12 @@ function ModelCard({ model, index }: { model: CarModel; index: number }) {
       >
         {model.variants.map((v, i) => (
           <Image
-            key={v.label}
+            key={`${i}-${v.label}`}
             src={v.image}
             alt={`${model.name}${model.variants.length > 1 ? ` in ${v.label}` : ""} for rent in Butuan City`}
             fill
-            placeholder="blur"
+            placeholder={isUploadedPhoto(v.image) ? "empty" : "blur"}
+            unoptimized={isUploadedPhoto(v.image)}
             sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             className={cn(
               "object-contain transition-all duration-700 ease-out group-hover:scale-105",
@@ -56,16 +54,25 @@ function ModelCard({ model, index }: { model: CarModel; index: number }) {
         <Badge variant="secondary" className="absolute top-3 left-3 h-6 px-3 text-[11px] font-bold tracking-wider uppercase">
           {vehicle.short}
         </Badge>
-        <Badge
-          variant="outline"
-          className="absolute top-3 right-3 h-6 gap-1.5 border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-bold tracking-wider text-emerald-700 uppercase"
-        >
-          <span className="relative flex size-2">
-            <span className="absolute inset-0 animate-ping-slow rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative size-full rounded-full bg-emerald-500" />
-          </span>
-          Available
-        </Badge>
+        {model.availability === "unavailable" ? (
+          <Badge
+            variant="outline"
+            className="absolute top-3 right-3 h-6 border-amber-200 bg-amber-50 px-2.5 text-[11px] font-bold tracking-wider text-amber-800 uppercase"
+          >
+            Not available
+          </Badge>
+        ) : (
+          <Badge
+            variant="outline"
+            className="absolute top-3 right-3 h-6 gap-1.5 border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-bold tracking-wider text-emerald-700 uppercase"
+          >
+            <span className="relative flex size-2">
+              <span className="absolute inset-0 animate-ping-slow rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative size-full rounded-full bg-emerald-500" />
+            </span>
+            Available
+          </Badge>
+        )}
       </Link>
 
       <CardContent className="flex flex-1 flex-col px-3.5 pt-4">
@@ -96,7 +103,7 @@ function ModelCard({ model, index }: { model: CarModel; index: number }) {
           <div role="radiogroup" aria-label={`${model.name} color`} className="mt-3 flex items-center gap-2">
             {model.variants.map((v, i) => (
               <button
-                key={v.label}
+                key={`${i}-${v.label}`}
                 type="button"
                 role="radio"
                 aria-checked={i === variant}
@@ -164,7 +171,12 @@ function ModelCard({ model, index }: { model: CarModel; index: number }) {
 }
 
 export function Fleet() {
+  const { fleet, models } = useCatalog();
   const [filter, setFilter] = useState<Filter>("all");
+  const filters: { id: Filter; label: string; count: number }[] = [
+    { id: "all", label: "All", count: models.length },
+    ...fleet.map((v) => ({ id: v.id, label: v.short, count: models.filter((m) => m.category === v.id).length })),
+  ];
   const shown = filter === "all" ? models : models.filter((m) => m.category === filter);
 
   return (

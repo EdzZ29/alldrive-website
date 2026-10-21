@@ -17,7 +17,7 @@ import {
   Truck,
   UserCheck,
 } from "lucide-react";
-import { discountMinDays, driverRate, estimateTrip, findPlace, fleet, peso, site, whatsappLink, zones, type VehicleId } from "@/lib/site";
+import { discountMinDays, findPlace, peso, site, whatsappLink, zones, type VehicleId } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -27,6 +27,7 @@ import { MessengerIcon, ViberIcon, WhatsAppIcon } from "./brand";
 import { BookingDialog } from "./booking-dialog";
 import { ViberLink } from "./viber-link";
 import { DestinationSelect } from "./destination-select";
+import { useCatalog } from "./catalog-provider";
 
 const vehicleIcons: Record<VehicleId, typeof CarFront> = {
   sedan: CarTaxiFront,
@@ -61,6 +62,7 @@ function useTween(value: number, duration = 500) {
 }
 
 export function Estimator() {
+  const { fleet, driverRate, estimateTrip } = useCatalog();
   const [mode, setMode] = useState<"self" | "driver">("self");
   const [vehicleId, setVehicleId] = useState<VehicleId>("mpv");
   const [placeId, setPlaceId] = useState("butuan-city");

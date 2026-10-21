@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { type CarModel } from "@/lib/site";
+import { isUploadedPhoto, type CarModel } from "@/lib/site";
 
 /** Large car photo with color swatches. */
 export function ModelGallery({ model }: { model: CarModel }) {
@@ -15,12 +15,13 @@ export function ModelGallery({ model }: { model: CarModel }) {
       <div className="relative aspect-[16/10] overflow-hidden rounded-[1.75rem] border border-line bg-white">
         {model.variants.map((v, i) => (
           <Image
-            key={v.label}
+            key={`${i}-${v.label}`}
             src={v.image}
             alt={`${model.name}${many ? ` in ${v.label}` : ""} for rent in Butuan City`}
             fill
             preload={i === 0}
-            placeholder="blur"
+            placeholder={isUploadedPhoto(v.image) ? "empty" : "blur"}
+            unoptimized={isUploadedPhoto(v.image)}
             sizes="(min-width: 1024px) 58vw, 100vw"
             className={cn("object-contain p-4 transition-opacity duration-700", i === variant ? "opacity-100" : "opacity-0")}
           />
@@ -31,7 +32,7 @@ export function ModelGallery({ model }: { model: CarModel }) {
         <div role="radiogroup" aria-label={`${model.name} color`} className="mt-4 flex flex-wrap gap-2">
           {model.variants.map((v, i) => (
             <button
-              key={v.label}
+              key={`${i}-${v.label}`}
               type="button"
               role="radio"
               aria-checked={i === variant}

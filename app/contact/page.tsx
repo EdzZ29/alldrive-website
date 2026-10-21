@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { PageHero } from "../_components/page-hero";
 import { ChatMenu } from "../_components/chat-menu";
 import { Contact } from "../_components/contact";
+import { InquiryForm } from "../_components/inquiry-form";
 
 export const metadata = pageMetadata({
   title: "Contact & Directions",
@@ -31,8 +32,8 @@ export default function ContactPage() {
           </>
         }
       >
-        We&apos;re open 24 hours in Butuan City. Message us on WhatsApp, Viber or Messenger, or send an email, and
-        we&apos;ll confirm your booking fast.
+        We&apos;re open 24 hours in Butuan City. Message us on WhatsApp, Viber or Messenger, send an email, or use the
+        message form below, and we&apos;ll confirm your booking fast.
       </PageHero>
 
       <section className="bg-white py-20 sm:py-24">
@@ -77,6 +78,12 @@ export default function ContactPage() {
               </p>
             </Card>
           </div>
+        </div>
+      </section>
+
+      <section id="message" className="scroll-mt-24 bg-white pb-20 sm:pb-24">
+        <div className="mx-auto max-w-3xl px-5">
+          <InquiryForm page="/contact" />
         </div>
       </section>
 

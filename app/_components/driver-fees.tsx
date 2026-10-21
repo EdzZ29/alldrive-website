@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { BedDouble, CalendarCheck, MapPinned, ShieldCheck, Utensils } from "lucide-react";
 import driverImg from "@/public/images/fleet-lineup.jpg";
-import { driverRate, peso } from "@/lib/site";
+import { peso } from "@/lib/site";
+import { getCatalog } from "@/lib/catalog";
 import { Card } from "@/components/ui/card";
 import { SectionHeading } from "./section-heading";
 
@@ -12,7 +13,8 @@ const notes = [
   { Icon: BedDouble, title: "Overnight trips", body: "For multi-day trips, the driver's accommodation is shouldered by the renter." },
 ];
 
-export function DriverFees() {
+export async function DriverFees() {
+  const { driverRate } = await getCatalog();
   return (
     <section id="driver" className="py-24 sm:py-32">
       <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 lg:grid-cols-12 lg:gap-12">

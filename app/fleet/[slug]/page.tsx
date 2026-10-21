@@ -1,22 +1,11 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, CalendarCheck, Check, Clock, MapPinned, Plane, Snowflake, UserCheck, Users } from "lucide-react";
-import {
-  driverRate,
-  findModel,
-  modelPath,
-  models,
-  peso,
-  rateText,
-  ratesOf,
-  site,
-  vehicleOf,
-  whatsappLink,
-  zones,
-  type CarModel,
-} from "@/lib/site";
+import { isUploadedPhoto, modelPath, peso, rateText, site, whatsappLink, zones, type Catalog, type CarModel } from "@/lib/site";
+import { getCatalog } from "@/lib/catalog";
 import { pageMetadata } from "@/lib/seo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,11 +17,11 @@ import { PageHero } from "../../_components/page-hero";
 import { ModelGallery } from "./model-gallery";
 import { ViberLink } from "../../_components/viber-link";
 
-export function generateStaticParams() {
-  return models.map((m) => ({ slug: m.id }));
+export async function generateStaticParams() {
+  return (await getCatalog()).models.map((m) => ({ slug: m.id }));
 }
 
-function details(model: CarModel) {
+function details(model: CarModel, { vehicleOf, ratesOf }: Catalog) {
   const vehicle = vehicleOf(model);
   const seats = model.seats ?? vehicle.seats;
   const rates = ratesOf(model);
@@ -40,9 +29,11 @@ function details(model: CarModel) {
 }
 
 export async function generateMetadata({ params }: PageProps<"/fleet/[slug]">): Promise<Metadata> {
-  const model = findModel((await params).slug);
+  const catalog = await getCatalog();
+  const model = catalog.findModel((await params).slug);
   if (!model) return {};
-  const { vehicle, seats, from } = details(model);
+  const { vehicle, seats, from } = details(model, catalog);
+  const { driverRate } = catalog;
   const price = from == null ? "Rates on request" : `Self-drive from ${peso(from)}/day`;
   return pageMetadata({
     title: `${model.name} for Rent in Butuan City`,
@@ -51,8 +42,8 @@ export async function generateMetadata({ params }: PageProps<"/fleet/[slug]">): 
   });
 }
 
-function RelatedCard({ model }: { model: CarModel }) {
-  const { vehicle, from } = details(model);
+function RelatedCard({ model, catalog }: { model: CarModel; catalog: Catalog }) {
+  const { vehicle, from } = details(model, catalog);
   return (
     <Card
       asChild
@@ -64,7 +55,8 @@ function RelatedCard({ model }: { model: CarModel }) {
             src={model.variants[0].image}
             alt=""
             fill
-            placeholder="blur"
+            placeholder={isUploadedPhoto(model.variants[0].image) ? "empty" : "blur"}
+            unoptimized={isUploadedPhoto(model.variants[0].image)}
             sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
             className="object-contain transition-transform duration-700 group-hover:scale-105"
           />
@@ -90,10 +82,23 @@ function RelatedCard({ model }: { model: CarModel }) {
   );
 }
 
-export default async function ModelPage({ params }: PageProps<"/fleet/[slug]">) {
-  const model = findModel((await params).slug);
+// Car pages listed in generateStaticParams are fully prerendered. params is read inside
+// <Suspense> so Next.js can also build the route's shared shell, which it needs to refresh these
+// pages after fleet changes in the admin dashboard.
+export default function ModelPage({ params }: PageProps<"/fleet/[slug]">) {
+  return (
+    <Suspense fallback={<main className="min-h-[80svh] bg-ink" />}>
+      <ModelPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ModelPageContent({ params }: Pick<PageProps<"/fleet/[slug]">, "params">) {
+  const catalog = await getCatalog();
+  const { models, driverRate } = catalog;
+  const model = catalog.findModel((await params).slug);
   if (!model) notFound();
-  const { vehicle, seats, rates, from, people } = details(model);
+  const { vehicle, seats, rates, from, people } = details(model, catalog);
 
   const related = [
     ...models.filter((m) => m.category === model.category && m.id !== model.id),
@@ -175,6 +180,11 @@ export default async function ModelPage({ params }: PageProps<"/fleet/[slug]">) 
 
           <aside className="min-w-0 lg:col-span-5">
             <Card className="gap-0 rounded-[1.75rem] border-0 bg-ink p-6 text-white ring-0 sm:p-8 lg:sticky lg:top-28">
+              {model.availability === "unavailable" && (
+                <p className="mb-5 rounded-xl bg-amber-400/15 px-3 py-2 text-sm font-semibold text-amber-200">
+                  Not available right now. Message us to ask about your dates.
+                </p>
+              )}
               <p className="text-xs font-bold tracking-[0.2em] text-brand uppercase">Daily rate</p>
               {from == null ? (
                 <p className="mt-3 font-display text-4xl font-extrabold">On request</p>
@@ -253,7 +263,7 @@ export default async function ModelPage({ params }: PageProps<"/fleet/[slug]">) 
           </div>
           <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {related.map((m) => (
-              <RelatedCard key={m.id} model={m} />
+              <RelatedCard key={m.id} model={m} catalog={catalog} />
             ))}
           </div>
         </div>
