@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Maintenance mode: visitors see /maintenance (with a 503 so search engines keep the old pages)
 // while the site is being set up. The admin dashboard and its API stay reachable.
 //
-// MAINTENANCE_MODE=on|off. Unset = on for the live Vercel site, off locally and on previews.
+// MAINTENANCE_MODE=on turns it on (then redeploy); unset or off = the normal site.
 // MAINTENANCE_BYPASS_KEY: open any page once with ?preview=<key> to see the real site in that
 // browser (?preview=off to see the maintenance page again).
 
@@ -13,8 +13,7 @@ const ALWAYS_OPEN = /^\/(admin|api|uploads)(\/|$)/;
 
 function maintenanceOn() {
   const setting = process.env.MAINTENANCE_MODE?.trim().toLowerCase();
-  if (setting) return ["on", "true", "1"].includes(setting);
-  return process.env.VERCEL_ENV === "production";
+  return setting === "on" || setting === "true" || setting === "1";
 }
 
 // The cookie holds a hash of the key, never the key itself.
