@@ -84,17 +84,19 @@ export type Summary = {
   activeBookings: number;
   newInquiries: number;
   unreadNotifications: number;
+  unreadChats: number;
   units: Record<UnitStatus, number>;
   completedRevenue: number;
 };
 
 export type AppNotification = {
   id: number;
-  type: "booking" | "inquiry";
+  type: "booking" | "inquiry" | "chat";
   title: string;
   message: string;
   bookingId: number | null;
   inquiryId: number | null;
+  chatId: number | null;
   read: boolean;
   createdAt: string;
   // Live (stream) notifications also carry the full record.
@@ -149,6 +151,33 @@ export function toPhMobile(value: string) {
   const local = digits.startsWith("63") ? `0${digits.slice(2)}` : digits.startsWith("9") ? `0${digits}` : digits;
   return /^09\d{9}$/.test(local) ? local : null;
 }
+
+/** A live chat from the website's chat bubble. */
+export type ChatStatus = "Open" | "Closed";
+export type Chat = {
+  id: number;
+  name: string;
+  contact: string;
+  page: string | null;
+  status: ChatStatus;
+  // Visitor messages no admin has opened yet.
+  adminUnread: number;
+  lastMessageAt: string;
+  lastMessagePreview: string;
+  createdAt: string;
+};
+export type ChatMessage = {
+  id: number;
+  conversationId: number;
+  sender: "visitor" | "admin" | "auto";
+  body: string;
+  // The admin who replied (admin messages only).
+  authorName: string | null;
+  createdAt: string;
+};
+export type ChatWithMessages = Chat & { messages: ChatMessage[] };
+/** Live "chat" event from the notifications stream. */
+export type ChatEvent = { conversation: Chat; messages: ChatMessage[] };
 
 export type InquiryStatus = "New" | "Contacted" | "Closed";
 

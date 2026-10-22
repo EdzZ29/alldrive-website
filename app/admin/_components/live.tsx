@@ -2,12 +2,14 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
-import { Bell, CalendarCheck, CheckCheck, MessageSquareText, X } from "lucide-react";
+import { Bell, CalendarCheck, CheckCheck, MessagesSquare, MessageSquareText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { api, formatWhen, type AppNotification, type Summary } from "../_lib/api";
+import { api, formatWhen, type AppNotification, type ChatEvent, type Summary } from "../_lib/api";
 
 /** Fired on window for every new notification, so open lists can update in place. */
 export const LIVE_EVENT = "alldrive:live";
+/** Fired on window for every live chat event (new messages, status changes). */
+export const CHAT_EVENT = "alldrive:chat";
 const POLL_MS = 30_000;
 const TOAST_MS = 8_000;
 
@@ -60,7 +62,18 @@ export function playChime() {
 
 // ---------- Live notifications ----------
 
-type Toast = AppNotification & { key: number };
+type Toast = { key: string; title: string; message: string; href: string; kind: AppNotification["type"]; notificationId?: number };
+
+const toastOf = (n: AppNotification): Toast => ({
+  key: `n${n.id}`,
+  title: n.title,
+  message: n.message,
+  href: notificationHref(n),
+  kind: n.type,
+  notificationId: n.id,
+});
+
+const ICONS = { booking: CalendarCheck, inquiry: MessageSquareText, chat: MessagesSquare } as const;
 
 type LiveValue = {
   notifications: AppNotification[];
@@ -81,7 +94,17 @@ export function useLive() {
 
 /** Where a notification leads in the dashboard. */
 export const notificationHref = (n: AppNotification) =>
-  n.type === "inquiry" ? `/admin/inquiries${n.inquiryId ? `?id=${n.inquiryId}` : ""}` : `/admin/bookings${n.bookingId ? `?id=${n.bookingId}` : ""}`;
+  n.type === "chat"
+    ? `/admin/messages${n.chatId ? `?id=${n.chatId}` : ""}`
+    : n.type === "inquiry"
+      ? `/admin/inquiries${n.inquiryId ? `?id=${n.inquiryId}` : ""}`
+      : `/admin/bookings${n.bookingId ? `?id=${n.bookingId}` : ""}`;
+
+// True while this chat is open on screen (no toast needed for it).
+const viewingChat = (id: number) =>
+  document.visibilityState === "visible" &&
+  window.location.pathname === "/admin/messages" &&
+  new URLSearchParams(window.location.search).get("id") === String(id);
 
 /**
  * Keeps the dashboard live: loads recent notifications, listens to the backend's stream, and
@@ -95,6 +118,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   // Highest notification id already seen; anything above it is new. null = not loaded yet.
   const seenId = useRef<number | null>(null);
+  // Chats already announced by a live message, so their "New chat" notification doesn't toast twice.
+  const toastedChats = useRef(new Map<number, number>());
   const sound = useSoundPref();
   const soundRef = useRef(sound);
   useEffect(() => {
@@ -112,10 +137,31 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         const ids = new Set(list.map((n) => n.id));
         return [...fresh.filter((n) => !ids.has(n.id)), ...list].sort((a, b) => b.id - a.id).slice(0, 50);
       });
-      setToasts((list) => [...fresh.map((n) => ({ ...n, key: n.id })), ...list].slice(0, 4));
+      const recent = (n: AppNotification) => n.type === "chat" && !!n.chatId && Date.now() - (toastedChats.current.get(n.chatId) ?? 0) < 60_000;
+      const toastable = fresh.filter((n) => !recent(n) && !(n.type === "chat" && n.chatId && viewingChat(n.chatId)));
+      setToasts((list) => [...toastable.map(toastOf), ...list].slice(0, 4));
       fresh.forEach((n) => window.dispatchEvent(new CustomEvent<AppNotification>(LIVE_EVENT, { detail: n })));
-      if (soundRef.current) playChime();
+      if (soundRef.current && toastable.length) playChime();
       refreshSummary();
+    },
+    [refreshSummary],
+  );
+
+  // A chat message arrived (or a chat changed): update open screens, toast visitor messages.
+  const onChat = useCallback(
+    (event: ChatEvent) => {
+      window.dispatchEvent(new CustomEvent<ChatEvent>(CHAT_EVENT, { detail: event }));
+      refreshSummary();
+      const fromVisitor = event.messages.filter((m) => m.sender === "visitor");
+      const chat = event.conversation;
+      if (!fromVisitor.length || viewingChat(chat.id)) return;
+      toastedChats.current.set(chat.id, Date.now());
+      const last = fromVisitor[fromVisitor.length - 1];
+      const href = `/admin/messages?id=${chat.id}`;
+      // One toast per chat: a newer message replaces the older one.
+      const toast: Toast = { key: `c${last.id}`, title: `Chat: ${chat.name}`, message: last.body, href, kind: "chat" };
+      setToasts((list) => [toast, ...list.filter((t) => t.href !== href)].slice(0, 4));
+      if (soundRef.current) playChime();
     },
     [refreshSummary],
   );
@@ -143,8 +189,11 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       );
     void load();
     refreshSummary();
+    // Also refreshes the counts, so badges stay right if the live stream is cut.
     const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") void load();
+      if (document.visibilityState !== "visible") return;
+      void load();
+      refreshSummary();
     }, POLL_MS);
 
     const stream = new EventSource("/api/notifications/stream");
@@ -159,13 +208,20 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         // Ignore malformed frames.
       }
     });
+    stream.addEventListener("chat", (e) => {
+      try {
+        onChat(JSON.parse((e as MessageEvent<string>).data) as ChatEvent);
+      } catch {
+        // Ignore malformed frames.
+      }
+    });
 
     return () => {
       active = false;
       window.clearInterval(timer);
       stream.close();
     };
-  }, [announce, refreshSummary, takeNew]);
+  }, [announce, onChat, refreshSummary, takeNew]);
 
   const markRead = useCallback(
     (id: number) => {
@@ -179,7 +235,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     api("/notifications/read-all", { method: "PATCH" }).then(refreshSummary, () => undefined);
   }, [refreshSummary]);
 
-  const dismiss = useCallback((key: number) => setToasts((list) => list.filter((t) => t.key !== key)), []);
+  const dismiss = useCallback((key: string) => setToasts((list) => list.filter((t) => t.key !== key)), []);
 
   const unread = notifications.filter((n) => !n.read).length;
   const value = useMemo(
@@ -195,7 +251,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function Toasts({ toasts, onDismiss, onOpen }: { toasts: Toast[]; onDismiss: (key: number) => void; onOpen: (id: number) => void }) {
+function Toasts({ toasts, onDismiss, onOpen }: { toasts: Toast[]; onDismiss: (key: string) => void; onOpen: (id: number) => void }) {
   return (
     <div
       aria-live="polite"
@@ -208,13 +264,13 @@ function Toasts({ toasts, onDismiss, onOpen }: { toasts: Toast[]; onDismiss: (ke
   );
 }
 
-function ToastCard({ toast, onDismiss, onOpen }: { toast: Toast; onDismiss: (key: number) => void; onOpen: (id: number) => void }) {
+function ToastCard({ toast, onDismiss, onOpen }: { toast: Toast; onDismiss: (key: string) => void; onOpen: (id: number) => void }) {
   // Both callbacks are stable, so the timer runs once per toast.
   useEffect(() => {
     const timer = window.setTimeout(() => onDismiss(toast.key), TOAST_MS);
     return () => window.clearTimeout(timer);
   }, [toast.key, onDismiss]);
-  const Icon = toast.type === "inquiry" ? MessageSquareText : CalendarCheck;
+  const Icon = ICONS[toast.kind];
 
   return (
     <div role="status" className="pointer-events-auto flex animate-in items-start gap-3 rounded-2xl bg-ink p-4 text-white shadow-2xl fade-in slide-in-from-bottom-2">
@@ -222,9 +278,9 @@ function ToastCard({ toast, onDismiss, onOpen }: { toast: Toast; onDismiss: (key
         <Icon className="size-4" />
       </span>
       <Link
-        href={notificationHref(toast)}
+        href={toast.href}
         onClick={() => {
-          onOpen(toast.id);
+          if (toast.notificationId) onOpen(toast.notificationId);
           onDismiss(toast.key);
         }}
         className="min-w-0 flex-1"
@@ -295,7 +351,7 @@ export function NotificationBell() {
               <p className="px-4 py-10 text-center text-sm text-muted-foreground">No notifications yet.</p>
             ) : (
               notifications.map((n) => {
-                const Icon = n.type === "inquiry" ? MessageSquareText : CalendarCheck;
+                const Icon = ICONS[n.type];
                 return (
                   <Link
                     key={n.id}
@@ -335,4 +391,13 @@ export function useLiveEvents(onNew: (n: AppNotification) => void) {
     window.addEventListener(LIVE_EVENT, handler);
     return () => window.removeEventListener(LIVE_EVENT, handler);
   }, [onNew]);
+}
+
+/** Admin pages: run `onEvent` for every live chat event. */
+export function useChatEvents(onEvent: (e: ChatEvent) => void) {
+  useEffect(() => {
+    const handler = (e: Event) => onEvent((e as CustomEvent<ChatEvent>).detail);
+    window.addEventListener(CHAT_EVENT, handler);
+    return () => window.removeEventListener(CHAT_EVENT, handler);
+  }, [onEvent]);
 }

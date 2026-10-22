@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 /** Native select styled like the site's inputs (simple and reliable on phones). 16px text on
  * phones, or iOS zooms in when it's tapped. */
@@ -87,6 +89,26 @@ export function Field({ id, label, children, className }: { id: string; label: s
   );
 }
 
+/** Password field with an eye button to show or hide what was typed. */
+export function PasswordInput({ className, ...props }: Omit<ComponentProps<"input">, "type">) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <Input {...props} type={visible ? "text" : "password"} className={cn("pr-12", className)} />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? "Hide password" : "Show password"}
+        aria-pressed={visible}
+        aria-controls={props.id}
+        className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-xl text-muted-foreground transition hover:text-ink focus-visible:text-ink focus-visible:outline-none"
+      >
+        {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+      </button>
+    </div>
+  );
+}
+
 export function Detail({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
     <div className={className}>
@@ -115,6 +137,7 @@ const STATUS_TONE: Record<string, keyof typeof TONES> = {
   New: "amber",
   Contacted: "blue",
   Closed: "gray",
+  Open: "green",
   Unpaid: "gray",
   "Down Payment": "amber",
   "Fully Paid": "green",

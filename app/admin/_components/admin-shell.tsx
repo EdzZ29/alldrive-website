@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, Car, ExternalLink, LayoutDashboard, Loader2, LogOut, Menu, MessageSquareText, Settings } from "lucide-react";
+import { CalendarCheck, Car, ExternalLink, LayoutDashboard, Loader2, LogOut, Menu, MessagesSquare, MessageSquareText, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { api, ApiError, errorText, type User } from "../_lib/api";
@@ -18,10 +18,11 @@ export function useAdmin() {
   return ctx;
 }
 
-type NavItem = { href: string; label: string; Icon: typeof CalendarCheck; badge?: "bookings" | "inquiries" };
+type NavItem = { href: string; label: string; Icon: typeof CalendarCheck; badge?: "bookings" | "inquiries" | "chats" };
 const NAV: NavItem[] = [
   { href: "/admin", label: "Overview", Icon: LayoutDashboard },
   { href: "/admin/bookings", label: "Bookings", Icon: CalendarCheck, badge: "bookings" },
+  { href: "/admin/messages", label: "Messages", Icon: MessagesSquare, badge: "chats" },
   { href: "/admin/inquiries", label: "Inquiries", Icon: MessageSquareText, badge: "inquiries" },
   { href: "/admin/fleet", label: "Fleet & prices", Icon: Car },
   { href: "/admin/settings", label: "Settings", Icon: Settings },
@@ -137,7 +138,7 @@ function Frame({ user, children }: { user: User; children: ReactNode }) {
 function SidebarContent({ user, pathname, onNavigate }: { user: User; pathname: string; onNavigate?: () => void }) {
   const { summary } = useLive();
   const [signingOut, setSigningOut] = useState(false);
-  const counts = { bookings: summary?.pendingBookings ?? 0, inquiries: summary?.newInquiries ?? 0 };
+  const counts = { bookings: summary?.pendingBookings ?? 0, inquiries: summary?.newInquiries ?? 0, chats: summary?.unreadChats ?? 0 };
 
   const signOut = async () => {
     setSigningOut(true);

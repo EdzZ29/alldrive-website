@@ -11,9 +11,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Hides the public site's header and footer on this page (same approach as the admin layout).
+// Hides the public site's header, footer and chat bubble on this page (same approach as the
+// admin layout). The chat can't tell from the URL: visitors keep the address they opened.
 const hidePublicChrome =
-  "body:has([data-maintenance-page]) > header, body:has([data-maintenance-page]) > footer { display: none !important; }";
+  "body:has([data-maintenance-page]) > header, body:has([data-maintenance-page]) > footer, body:has([data-maintenance-page]) [data-chat-widget] { display: none !important; }";
 
 export default function MaintenancePage() {
   return (

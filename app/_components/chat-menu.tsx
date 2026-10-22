@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { site, whatsappLink } from "@/lib/site";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuGroup,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { GmailIcon, MessengerIcon, ViberIcon, WhatsAppIcon } from "./brand";
@@ -24,9 +26,18 @@ const channels = [
 
 /**
  * "Chat with us" dropdown: pick WhatsApp, Messenger, Viber or Email. The icon cycles through them.
- * `nav` is the slim header button; `brand` is the big sky-blue call-to-action.
+ * `nav` is the slim header button; `brand` is the big sky-blue call-to-action. `withCalls` adds
+ * the call numbers at the top (the header has no separate number).
  */
-export function ChatMenu({ className, variant = "nav" }: { className?: string; variant?: "nav" | "brand" }) {
+export function ChatMenu({
+  className,
+  variant = "nav",
+  withCalls = false,
+}: {
+  className?: string;
+  variant?: "nav" | "brand";
+  withCalls?: boolean;
+}) {
   const brand = variant === "brand";
   const [shown, setShown] = useState(0);
   const [open, setOpen] = useState(false);
@@ -93,6 +104,29 @@ export function ChatMenu({ className, variant = "nav" }: { className?: string; v
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end" sideOffset={12} className="w-64 rounded-2xl p-2">
+          {withCalls && (
+            <>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="px-2.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  Call or text us
+                </DropdownMenuLabel>
+                {site.phones.map((p) => (
+                  <DropdownMenuItem key={p.href} asChild className={itemClass}>
+                    <a href={`tel:${p.href}`}>
+                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-brand-700">
+                        <Phone className="size-4!" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold tabular-nums text-ink">{p.display}</span>
+                        <span className="block truncate text-xs text-muted-foreground">{p.network} · open 24 hours</span>
+                      </span>
+                    </a>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator className="my-1.5" />
+            </>
+          )}
           <DropdownMenuLabel className="px-2.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
             Chat with us on
           </DropdownMenuLabel>

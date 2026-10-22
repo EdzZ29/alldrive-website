@@ -9,7 +9,7 @@ import { api, errorText, type User } from "../../_lib/api";
 import { useAdmin } from "../../_components/admin-shell";
 import { playChime, setSoundPref, useSoundPref } from "../../_components/live";
 import { PushToggle } from "../../_components/push-toggle";
-import { Field, PageTitle } from "../../_components/ui";
+import { Field, PageTitle, PasswordInput } from "../../_components/ui";
 
 type Message = { ok: boolean; text: string } | null;
 const inputClass = "h-11 rounded-xl bg-white";
@@ -150,13 +150,13 @@ function PasswordSection() {
     <Section title="Password" description="Changing it signs you out everywhere else.">
       <form method="post" onSubmit={save} className="grid gap-3 sm:grid-cols-3">
         <Field id="pw-current" label="Current password">
-          <Input id="pw-current" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" required className={inputClass} />
+          <PasswordInput id="pw-current" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" required className={inputClass} />
         </Field>
         <Field id="pw-new" label="New password">
-          <Input id="pw-new" type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" minLength={8} required className={inputClass} />
+          <PasswordInput id="pw-new" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" minLength={8} required className={inputClass} />
         </Field>
         <Field id="pw-confirm" label="Repeat new password">
-          <Input id="pw-confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required className={inputClass} />
+          <PasswordInput id="pw-confirm" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required className={inputClass} />
         </Field>
         <div className="flex items-center justify-end gap-3 sm:col-span-3">
           <Note message={message} />
@@ -245,7 +245,7 @@ function AdminsSection() {
           <Input id="a-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required autoComplete="off" className={inputClass} />
         </Field>
         <Field id="a-password" label="Password">
-          <Input id="a-password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} autoComplete="new-password" className={inputClass} />
+          <PasswordInput id="a-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} autoComplete="new-password" className={inputClass} />
         </Field>
         <div className="flex items-center justify-end gap-3 sm:col-span-3">
           <Note message={message} />

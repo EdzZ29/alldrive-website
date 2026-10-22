@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api, ApiError, errorText } from "../_lib/api";
+import { PasswordInput } from "../_components/ui";
 
 // Only same-site admin paths, so ?next= can't send someone elsewhere.
 function nextPath() {
@@ -60,10 +61,9 @@ export function LoginForm() {
           <Label htmlFor="admin-password" className="font-semibold">
             Password
           </Label>
-          <Input
+          <PasswordInput
             id="admin-password"
             name="password"
-            type="password"
             required
             autoComplete="current-password"
             className="h-11 rounded-xl bg-white"

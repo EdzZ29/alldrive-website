@@ -8,6 +8,8 @@ import { Analytics } from "@vercel/analytics/next";
 import { catalogFrom, site, type Catalog } from "@/lib/site";
 import { getCatalogData } from "@/lib/catalog";
 import { CatalogProvider } from "./_components/catalog-provider";
+import { ChatWidget } from "./_components/chat-widget";
+import { Suspense } from "react";
 import { homeTitle } from "@/lib/seo";
 import "./globals.css";
 
@@ -173,6 +175,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <Navbar />
           {children}
           <Footer />
+          {/* Reads the URL (hidden on /admin), so it can't be part of the prerendered shell. */}
+          <Suspense fallback={null}>
+            <ChatWidget />
+          </Suspense>
         </CatalogProvider>
         <RevealObserver />
         <Analytics />

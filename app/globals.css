@@ -77,6 +77,8 @@
   --animate-drive: drive 9s linear infinite;
   --animate-dash: dash 1.2s linear infinite;
   --animate-pop-in: pop-in 0.6s var(--ease-out-expo) both;
+  /* Chat bubble: a short wiggle every few seconds to say "message us here". */
+  --animate-nudge: nudge 4s ease-in-out infinite;
 
   @keyframes marquee {
     to {
@@ -122,6 +124,25 @@
     to {
       opacity: 1;
       transform: none;
+    }
+  }
+  @keyframes nudge {
+    0%,
+    70%,
+    100% {
+      transform: none;
+    }
+    74% {
+      transform: rotate(-14deg) scale(1.08);
+    }
+    78% {
+      transform: rotate(12deg) scale(1.08);
+    }
+    82% {
+      transform: rotate(-8deg) scale(1.04);
+    }
+    86% {
+      transform: rotate(4deg);
     }
   }
 }
