@@ -5,10 +5,14 @@ import nodemailer from "nodemailer";
 import { buildBookingEmail, buildCustomerEmail, type BookingDetails, type BookingMeta, type BusinessContact } from "@/lib/booking-email";
 import { dashboardConfigured, sendBookingToDashboard } from "@/lib/dashboard";
 import { createRateLimiter } from "@/lib/rate-limit";
-import { peso, places, site, zones, type VehicleId } from "@/lib/site";
+import { areaLabel, peso, places, site, zoneOf, zones, type VehicleId } from "@/lib/site";
 import { getCatalog } from "@/lib/catalog";
+import placeAreas from "@/lib/place-areas.json";
 
-export type BookingResult = { ok: true } | { ok: false; error: string };
+const areasOf: Record<string, string[]> = placeAreas;
+
+/** `trackable`: the dashboard has the booking, so /track can find it by `reference`. */
+export type BookingResult = { ok: true; reference: string; trackable: boolean } | { ok: false; error: string };
 
 const BOOKING_TO = process.env.BOOKING_EMAIL_TO || "alldrivebtc@gmail.com";
 // The customer's "we received your booking" email. (The "confirmed" email comes from the
@@ -50,7 +54,7 @@ function bookingReference() {
 
 export async function submitBooking(data: FormData): Promise<BookingResult> {
   // Spam guards: a hidden field real people never fill, and a minimum time on the form.
-  if (str(data, "website")) return { ok: true };
+  if (str(data, "website")) return { ok: true, reference: bookingReference(), trackable: false };
   const startedAt = Number(data.get("startedAt"));
   if (!startedAt || Date.now() - startedAt < 3000) {
     return { ok: false, error: "Please take a moment to review your details, then try again." };
@@ -82,6 +86,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
     !address && "address",
     !work && "work place / business",
     !place && "destination",
+    place && !areasOf[place.id]?.includes(specificPlace) && areaLabel(place).toLowerCase(),
     !dateTime && "date & time",
     !vehicle && "preferred car",
     !(days >= 1 && days <= 60) && "number of days",
@@ -99,7 +104,8 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
 
   // Recompute the estimate on the server instead of trusting the browser.
   const withDriver = mode === "driver";
-  const { total } = estimateTrip(vehicle.id, place.zone, days, withDriver, model?.id);
+  const zoneId = zoneOf(place, specificPlace);
+  const { total } = estimateTrip(vehicle.id, zoneId, days, withDriver, model?.id);
   const estimate =
     total == null
       ? `Rate on request${withDriver ? ` (+ ${peso(driverRate)}/day driver)` : ""}`
@@ -112,7 +118,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
     address,
     work,
     destination: place.name,
-    zone: zones.find((z) => z.id === place.zone)!.label,
+    zone: zones.find((z) => z.id === zoneId)!.label,
     specificPlace,
     dateTime,
     car: model ? `${model.name} (${vehicle.short})` : `Any ${vehicle.name} (${vehicle.seats})`,
@@ -151,7 +157,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
           work,
           destination: place.name,
           zone: details.zone,
-          ...(specificPlace && { specificPlace }),
+          specificPlace,
           pickup: rawDateTime,
           days,
           driveType: withDriver ? "With Driver" : "Self Drive",
@@ -198,5 +204,5 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
       .catch((err) => console.error("Customer confirmation email failed:", err));
   }
 
-  return { ok: true };
+  return { ok: true, reference: meta.reference, trackable: dashboard.status === "fulfilled" };
 }

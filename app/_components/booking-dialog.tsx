@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,6 +15,7 @@ import {
   ListChecks,
   Loader2,
   MessageSquareText,
+  PackageSearch,
   Pencil,
   Send,
   UserCheck,
@@ -21,7 +23,7 @@ import {
 import { submitBooking } from "@/app/actions/booking";
 import { bookingRows, type BookingDetails } from "@/lib/booking-email";
 import { cn } from "@/lib/utils";
-import { findPlace, peso, rentalRequirements, site, whatsappLink, zones, type CarModel, type VehicleId } from "@/lib/site";
+import { areaLabel, findPlace, peso, rentalRequirements, site, whatsappLink, zoneOf, zones, type CarModel, type VehicleId } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -113,6 +115,10 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
   const [mode, setMode] = useState<Mode>(defaults.mode ?? "self");
   const [car, setCar] = useState(carValue(defaults.vehicleId, defaults.modelId));
   const [placeId, setPlaceId] = useState(defaults.placeId ?? "butuan-city");
+  const [area, setArea] = useState("");
+  const [areaMissing, setAreaMissing] = useState(false);
+  // Every Mindanao barangay and town, loaded only once the booking form opens.
+  const [areasOf, setAreasOf] = useState<Record<string, string[]> | null>(null);
   const [days, setDays] = useState(defaults.days ?? 1);
   const [minDate] = useState(nowForInput);
   const [startedAt] = useState(() => Date.now());
@@ -120,15 +126,19 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [sent, setSent] = useState<{ reference: string; trackable: boolean } | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [sending, startSending] = useTransition();
   const tripRef = useRef<HTMLFieldSetElement>(null);
+  const areaRef = useRef<HTMLButtonElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
   const withDriver = mode === "driver";
   const { vehicleId, model } = parseCar(car, models);
   const destination = findPlace(placeId);
-  const zone = zones.find((z) => z.id === destination.zone)!;
-  const { vehicle, total } = estimateTrip(vehicleId, destination.zone, Math.max(1, days || 1), withDriver, model?.id);
+  const areas = areasOf?.[destination.id] ?? [];
+  const zone = zones.find((z) => z.id === zoneOf(destination, area))!;
+  const { vehicle, total } = estimateTrip(vehicleId, zone.id, Math.max(1, days || 1), withDriver, model?.id);
   const carName = model ? `${model.name} (${vehicle.short})` : `Any ${vehicle.name} (${vehicle.seats})`;
   const estimateText =
     total == null
@@ -159,14 +169,43 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
     };
   };
 
+  useEffect(() => {
+    import("@/lib/place-areas.json").then((m) => setAreasOf(m.default));
+  }, []);
+
   const textMessage = (d: BookingDetails) =>
-    [`Hi ${site.name}! I'd like to book a car.`, "", ...bookingRows(d).map(([k, v]) => `${k}: ${v}`)].join("\n");
+    [
+      `Hi ${site.name}! I'd like to book a car.`,
+      "",
+      ...(sent ? [`Booking code: ${sent.reference}`] : []),
+      ...bookingRows(d).map(([k, v]) => `${k}: ${v}`),
+    ].join("\n");
+
+  const copyCode = async () => {
+    if (!sent) return;
+    try {
+      await navigator.clipboard.writeText(sent.reference);
+      setCodeCopied(true);
+    } catch {
+      // Clipboard can be blocked; the code is still on screen.
+    }
+  };
 
   const go = (next: Step) => {
     setError(null);
     setStep(next);
     // Each step starts at the top of the dialog.
     topRef.current?.scrollIntoView({ block: "start" });
+  };
+
+  // Step 1 -> 2. The barangay/town is checked by hand: the custom dropdown has no browser validation.
+  const toInfo = () => {
+    if (!area) {
+      setAreaMissing(true);
+      areaRef.current?.focus();
+      return;
+    }
+    if (stepIsValid(tripRef.current)) go("info");
   };
 
   // Step 2 -> 3: the browser has checked every field; keep a snapshot of what will be sent.
@@ -181,8 +220,10 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
     if (!snapshot || !agreed) return;
     startSending(async () => {
       const result = await submitBooking(snapshot);
-      if (result.ok) go("sent");
-      else setError(result.error);
+      if (result.ok) {
+        setSent({ reference: result.reference, trackable: result.trackable });
+        go("sent");
+      } else setError(result.error);
     });
   };
 
@@ -292,6 +333,7 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
         <input type="hidden" name="mode" value={mode} />
         <input type="hidden" name="car" value={car} />
         <input type="hidden" name="placeId" value={placeId} />
+        <input type="hidden" name="place" value={area} />
         <input type="hidden" name="startedAt" value={startedAt} />
         {/* Honeypot: hidden from people, often filled by spam bots. */}
         <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-0 w-0 opacity-0" />
@@ -304,7 +346,7 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
           onKeyDown={(e) => {
             if (e.key !== "Enter" || (e.target as HTMLElement).tagName !== "INPUT") return;
             e.preventDefault();
-            if (stepIsValid(tripRef.current)) go("info");
+            toInfo();
           }}
         >
           <legend className="sr-only">Trip details</legend>
@@ -332,10 +374,47 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="bk-route" label="Destination">
-              <DestinationSelect id="bk-route" value={placeId} onValueChange={setPlaceId} className={`${inputClass} h-11!`} />
+              <DestinationSelect
+                id="bk-route"
+                value={placeId}
+                onValueChange={(id) => {
+                  setPlaceId(id);
+                  setArea("");
+                }}
+                className={`${inputClass} h-11!`}
+              />
             </Field>
-            <Field id="bk-place" label="Specific place" hint=" (optional)">
-              <Input id="bk-place" name="place" maxLength={200} placeholder="e.g. Cabadbaran, Tinuy-an Falls" className={inputClass} />
+            <Field id="bk-place" label={areaLabel(destination)}>
+              <Select
+                value={area}
+                onValueChange={(v) => {
+                  setArea(v);
+                  setAreaMissing(false);
+                }}
+                disabled={!areasOf}
+              >
+                <SelectTrigger
+                  ref={areaRef}
+                  id="bk-place"
+                  aria-invalid={areaMissing || undefined}
+                  aria-describedby={areaMissing ? "bk-place-error" : undefined}
+                  className={`${inputClass} h-11! w-full`}
+                >
+                  <SelectValue placeholder={areasOf ? `Select ${areaLabel(destination).toLowerCase()}` : "Loading…"} />
+                </SelectTrigger>
+                <SelectContent position="popper" className="max-h-80">
+                  {areas.map((a) => (
+                    <SelectItem key={a} value={a} className="py-2">
+                      {a}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {areaMissing && (
+                <p id="bk-place-error" className="text-xs font-medium text-red-600">
+                  Please choose a {areaLabel(destination).toLowerCase()} in {destination.name}.
+                </p>
+              )}
             </Field>
 
             <Field id="bk-datetime" label="Date & Time of Rental">
@@ -402,9 +481,9 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
             </div>
           </div>
 
-          <EstimateBox label={`${model?.name ?? vehicle.short} · ${zone.label} · ${days || 1} day${days > 1 ? "s" : ""}${withDriver ? ` · driver ${peso(driverRate)}/day` : ""}`} total={total} />
+          <EstimateBox label={`${model?.name ?? vehicle.short} · ${area ? `${area}, ` : ""}${zone.label} · ${days || 1} day${days > 1 ? "s" : ""}${withDriver ? ` · driver ${peso(driverRate)}/day` : ""}`} total={total} />
 
-          <Button type="button" variant="brand-light" size="xl" className="group h-14 w-full" onClick={() => stepIsValid(tripRef.current) && go("info")}>
+          <Button type="button" variant="brand-light" size="xl" className="group h-14 w-full" onClick={toInfo}>
             Next: your information
             <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
           </Button>
@@ -547,6 +626,34 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
       {/* Sent */}
       {step === "sent" && snapshot && (
         <div className="grid gap-5">
+          {sent && (
+            <section className="grid gap-3 rounded-2xl border border-line p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">Your booking code</p>
+                  <p className="mt-0.5 font-display text-2xl font-extrabold tracking-wide tabular-nums break-all">{sent.reference}</p>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={copyCode} className="shrink-0 rounded-xl border-line font-bold">
+                  {codeCopied ? <Check className="text-emerald-600" /> : <Copy />} {codeCopied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {sent.trackable
+                  ? "Save this code. Use it with your mobile number or email to check your booking status anytime."
+                  : "Save this code and mention it when you call or message us about your booking."}
+              </p>
+              {sent.trackable && (
+                // Closes the dialog too, in case it lives in the layout and stays mounted.
+                <DialogClose asChild>
+                  <Button asChild variant="outline" className="h-11 rounded-xl border-line font-bold">
+                    <Link href={`/track?ref=${encodeURIComponent(sent.reference)}`}>
+                      <PackageSearch className="text-brand-600" /> Track my booking
+                    </Link>
+                  </Button>
+                </DialogClose>
+              )}
+            </section>
+          )}
           <div className="rounded-2xl bg-emerald-50 p-5 text-sm leading-relaxed text-emerald-900">
             We&apos;ll contact you at <span className="font-bold">{String(snapshot.get("contact"))}</span> to confirm your{" "}
             <span className="font-bold">{carName}</span> for <span className="font-bold">{destination.name}</span>. We&apos;re open 24 hours.

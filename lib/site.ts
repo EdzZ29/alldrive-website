@@ -256,6 +256,16 @@ export const places = regions.flatMap((r) => r.places);
 export const findPlace = (id: string) => places.find((p) => p.id === id) ?? places[0];
 export const placesInZone = (zone: ZoneId) => places.filter((p) => p.zone === zone);
 
+// The booking form's "specific place": a city's barangays or a province's towns, listed per place
+// id in place-areas.json (from the PSGC). Provinces list municipalities only; their cities are
+// destinations of their own.
+export const areaLabel = (p: Place) => (p.kind === "City" ? "Barangay" : "Town / Municipality");
+
+// Barangays or towns priced differently from their destination, keyed "place-id/Area name",
+// e.g. "butuan-city/Anticala": "caraga". Anything not listed uses its destination's zone.
+export const areaZones: Record<string, ZoneId> = {};
+export const zoneOf = (p: Place, area: string) => areaZones[`${p.id}/${area}`] ?? p.zone;
+
 export type VehicleId = "sedan" | "mpv" | "suv" | "van";
 
 export type Vehicle = {
