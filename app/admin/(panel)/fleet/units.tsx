@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { api, errorText, UNIT_STATUSES, type UnitStatus, type Vehicle } from "../../_lib/api";
+import { api, errorText, UNIT_STATUSES, type Booking, type UnitStatus, type Vehicle } from "../../_lib/api";
 import { uploadCarPhoto } from "../../_lib/images";
+import { rentalLabel, todayPH, unitRental } from "../../_lib/rentals";
 import { useLive } from "../../_components/live";
 import { useRestoredEvents, useUndo } from "../../_components/undo";
-import { Field, pageSlice, Pagination, selectClass, SheetActions, sheetClass, StatusBadge } from "../../_components/ui";
+import { Field, pageSlice, Pagination, selectClass, SheetActions, sheetClass, StatusBadge, ToneBadge } from "../../_components/ui";
 
 const TYPES = ["Sedan", "MPV", "SUV", "Pickup", "Van"];
 const TRANSMISSIONS = ["Automatic", "Manual"];
@@ -20,7 +21,7 @@ const FUELS = ["Gasoline", "Diesel", "Hybrid", "Electric"];
 
 const STATUS_NOTE: Record<UnitStatus, string> = {
   Available: "Ready to rent and to assign to bookings",
-  Booked: "Out on an approved booking",
+  Booked: "Reserved for, or out on, an approved booking",
   Maintenance: "In the shop; can't be assigned",
   Unlisted: "Kept, but not in use",
 };
@@ -81,10 +82,24 @@ function UnitPhoto({ src, className }: { src: string | null; className?: string 
   );
 }
 
+/** "On rent · back Oct 26", "Due back today" and so on, from the unit's approved bookings. */
+function RentalMark({ bookings, today }: { bookings: Booking[] | undefined; today: string }) {
+  const rental = bookings && unitRental(bookings, today);
+  if (!rental) return null;
+  const { text, tone } = rentalLabel(rental.kind, rental.booking);
+  return (
+    <ToneBadge tone={tone} className="mt-1">
+      {text} · {rental.booking.customerName.split(/\s+/)[0]}
+    </ToneBadge>
+  );
+}
+
 /** The physical cars (with plate numbers) that bookings are assigned to. */
 export function Units() {
   const { refreshSummary } = useLive();
   const [units, setUnits] = useState<Vehicle[] | null>(null);
+  // Approved bookings per unit, for the "On rent" / "Due back" marks.
+  const [rentals, setRentals] = useState<Record<number, Booking[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Vehicle | "new" | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -93,9 +108,16 @@ export function Units() {
 
   const load = useCallback(
     () =>
-      api<Vehicle[]>("/vehicles").then(
-        (list) => {
+      Promise.all([
+        api<Vehicle[]>("/vehicles"),
+        // The marks are extra: the list still shows if they can't load.
+        api<Booking[]>("/bookings/rentals").catch(() => []),
+      ]).then(
+        ([list, approved]) => {
           setUnits(list);
+          const byUnit: Record<number, Booking[]> = {};
+          for (const b of approved) if (b.vehicleId) (byUnit[b.vehicleId] ??= []).push(b);
+          setRentals(byUnit);
           setError(null);
         },
         (err) => setError(errorText(err, "Couldn't load the units.")),
@@ -130,6 +152,7 @@ export function Units() {
   };
 
   const shown = pageSlice(units ?? [], page);
+  const today = todayPH();
   const counts = Object.fromEntries(UNIT_STATUSES.map((s) => [s, (units ?? []).filter((u) => u.status === s).length])) as Record<UnitStatus, number>;
 
   return (
@@ -137,7 +160,7 @@ export function Units() {
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-xl text-sm text-muted-foreground">
           Your actual cars, by plate number. Assign them to bookings; approving a booking marks its car as Booked until
-          it&apos;s returned.
+          it&apos;s returned. Each car also shows when it&apos;s picked up, out on rent, and due back.
         </p>
         <Button variant="ink" size="md" onClick={() => setEditing("new")}>
           <Plus /> Add car
@@ -178,6 +201,7 @@ export function Units() {
                   <span className="block truncate text-xs text-muted-foreground">
                     {v.vehicleType} · {v.year} · {v.color} · {v.transmission} · {v.seats} seats
                   </span>
+                  <RentalMark bookings={rentals[v.id]} today={today} />
                 </span>
               </button>
               <div className="flex w-full items-center gap-2 sm:w-auto">

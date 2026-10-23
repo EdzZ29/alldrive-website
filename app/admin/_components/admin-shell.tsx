@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, Car, ExternalLink, History, LayoutDashboard, Loader2, LogOut, Menu, MessagesSquare, MessageSquareText, Settings } from "lucide-react";
+import { CalendarCheck, CalendarDays, Car, ExternalLink, History, LayoutDashboard, Loader2, LogOut, Menu, MessagesSquare, MessageSquareText, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { api, ApiError, errorText, type User } from "../_lib/api";
@@ -23,6 +23,7 @@ type NavItem = { href: string; label: string; Icon: typeof CalendarCheck; badge?
 const NAV: NavItem[] = [
   { href: "/admin", label: "Overview", Icon: LayoutDashboard },
   { href: "/admin/bookings", label: "Bookings", Icon: CalendarCheck, badge: "bookings" },
+  { href: "/admin/calendar", label: "Calendar", Icon: CalendarDays },
   { href: "/admin/messages", label: "Messages", Icon: MessagesSquare, badge: "chats" },
   { href: "/admin/inquiries", label: "Inquiries", Icon: MessageSquareText, badge: "inquiries" },
   { href: "/admin/fleet", label: "Fleet & prices", Icon: Car },

@@ -51,6 +51,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MessengerIcon, WhatsAppIcon } from "./brand";
 import { DestinationSelect } from "./destination-select";
 import { useCatalog } from "./catalog-provider";
+import { rememberBooking } from "./track-tour";
 
 type Mode = "self" | "driver";
 
@@ -222,6 +223,7 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
       const result = await submitBooking(snapshot);
       if (result.ok) {
         setSent({ reference: result.reference, trackable: result.trackable });
+        if (result.trackable) rememberBooking(result.reference);
         go("sent");
       } else setError(result.error);
     });

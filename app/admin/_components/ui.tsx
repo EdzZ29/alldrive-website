@@ -148,12 +148,19 @@ const STATUS_TONE: Record<string, keyof typeof TONES> = {
   Unlisted: "gray",
 };
 
-export function StatusBadge({ status }: { status: string }) {
+export type Tone = keyof typeof TONES;
+
+/** A colored pill with any text. */
+export function ToneBadge({ tone, children, className }: { tone: Tone; children: ReactNode; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ring-1 ring-inset", TONES[STATUS_TONE[status] ?? "gray"])}>
-      {status}
+    <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ring-1 ring-inset", TONES[tone], className)}>
+      {children}
     </span>
   );
+}
+
+export function StatusBadge({ status }: { status: string }) {
+  return <ToneBadge tone={STATUS_TONE[status] ?? "gray"}>{status}</ToneBadge>;
 }
 
 /** Calls `refresh` every `ms` while the tab is visible, and right away when it becomes visible. */
