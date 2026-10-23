@@ -171,25 +171,55 @@ export function useAutoRefresh(refresh: () => void, ms = 30_000) {
 
 // ---------- Lists: pages and search ----------
 
-/** "Showing 21–40 of 132" with previous/next buttons. Hidden when everything fits on one page. */
+/** Page numbers to show: the first, the last and the ones around the current page; null = a gap. */
+function pageNumbers(page: number, pages: number): (number | null)[] {
+  const keep = [...new Set([1, page - 1, page, page + 1, pages])].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+  // A gap of one page shows that page instead of "…".
+  return keep.flatMap((n, i) => {
+    const prev = keep[i - 1];
+    if (prev === undefined || n - prev === 1) return [n];
+    return n - prev === 2 ? [prev + 1, n] : [null, n];
+  });
+}
+
+/** "Showing 21–40 of 132" with previous/next and page number buttons. Hidden only when the list is empty. */
 export function Pagination({ page, limit, total, onPage }: { page: number; limit: number; total: number; onPage: (page: number) => void }) {
   const pages = Math.max(1, Math.ceil(total / limit));
-  if (total <= limit && page === 1) return null;
-  const from = total ? (page - 1) * limit + 1 : 0;
+  if (!total) return null;
+  const from = (page - 1) * limit + 1;
   const to = Math.min(total, page * limit);
-  const button = "grid size-11 place-items-center rounded-xl border border-line bg-white text-ink transition hover:border-ink disabled:pointer-events-none disabled:opacity-40";
+  const button =
+    "grid h-11 min-w-11 place-items-center rounded-xl border border-line bg-white px-2 text-sm font-semibold text-ink tabular-nums transition hover:border-ink disabled:pointer-events-none disabled:opacity-40";
   return (
-    <nav aria-label="Pages" className="mt-4 flex items-center justify-between gap-3">
+    <nav aria-label="Pages" className="mt-4 flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm text-muted-foreground">
         Showing <span className="font-semibold text-ink">{from}–{to}</span> of <span className="font-semibold text-ink">{total}</span>
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <button onClick={() => onPage(page - 1)} disabled={page <= 1} aria-label="Previous page" className={button}>
           <ChevronLeft className="size-5" />
         </button>
-        <span className="min-w-16 text-center text-sm font-semibold tabular-nums">
+        {/* Phones: "2 / 7". Wider screens: 1 2 3 … 7 */}
+        <span className="min-w-16 text-center text-sm font-semibold tabular-nums sm:hidden">
           {page} / {pages}
         </span>
+        {pageNumbers(page, pages).map((n, i) =>
+          n == null ? (
+            <span key={`gap-${i}`} aria-hidden className="hidden w-6 text-center text-muted-foreground sm:inline">
+              …
+            </span>
+          ) : (
+            <button
+              key={n}
+              onClick={() => onPage(n)}
+              aria-label={`Page ${n}`}
+              aria-current={n === page ? "page" : undefined}
+              className={cn(button, "hidden sm:grid", n === page && "border-ink bg-ink text-white hover:border-ink")}
+            >
+              {n}
+            </button>
+          ),
+        )}
         <button onClick={() => onPage(page + 1)} disabled={page >= pages} aria-label="Next page" className={button}>
           <ChevronRight className="size-5" />
         </button>

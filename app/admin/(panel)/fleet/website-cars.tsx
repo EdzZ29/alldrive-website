@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { builtInFleet, builtInModels, catalogFrom, mergeCatalog, peso, type CatalogOverrides } from "@/lib/site";
 import { api, errorText } from "../../_lib/api";
 import { uploadCarPhoto } from "../../_lib/images";
-import { SheetActions, sheetClass } from "../../_components/ui";
+import { pageSlice, Pagination, SheetActions, sheetClass } from "../../_components/ui";
 import { CarPhoto, fromDraft, RatesEditor, saveCatalog, toDraft, type RatesDraft } from "./fleet-shared";
 
 type Availability = "available" | "unavailable" | "hidden";
@@ -29,8 +29,11 @@ const availabilityBadge: Record<Availability, string> = {
 
 export function WebsiteCars({ overrides, onSaved }: { overrides: CatalogOverrides; onSaved: (o: CatalogOverrides) => void }) {
   const [editing, setEditing] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   // Everything, hidden cars included, with the dashboard's changes applied.
   const catalog = catalogFrom(mergeCatalog(overrides, { includeHidden: true }));
+  // 12 fits the 1, 2 and 3 column grids evenly.
+  const shown = pageSlice(catalog.models, page, 12);
   const model = editing ? builtInModels.find((m) => m.id === editing) : undefined;
 
   return (
@@ -40,7 +43,7 @@ export function WebsiteCars({ overrides, onSaved }: { overrides: CatalogOverride
         website right away.
       </p>
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {catalog.models.map((m) => {
+        {shown.items.map((m) => {
           const availability: Availability = overrides.models[m.id]?.availability ?? "available";
           const from = catalog.ratesOf(m).butuan;
           const added = overrides.models[m.id]?.photos?.length ?? 0;
@@ -70,6 +73,7 @@ export function WebsiteCars({ overrides, onSaved }: { overrides: CatalogOverride
           );
         })}
       </ul>
+      <Pagination page={shown.page} limit={shown.limit} total={shown.total} onPage={setPage} />
 
       <Dialog open={!!model} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className={sheetClass} onOpenAutoFocus={(e) => e.preventDefault()}>
