@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 // backend's httpOnly login cookie is first-party. Only the routes the dashboard uses are
 // forwarded, and only when ALLDRIVE_API_URL is set.
 const API_URL = (process.env.ALLDRIVE_API_URL || "").replace(/\/+$/, "");
-const ADMIN_API_ROUTES = ["auth", "bookings", "inquiries", "vehicles", "push", "catalog", "dashboard", "notifications", "users", "uploads", "chats"];
+const ADMIN_API_ROUTES = ["auth", "bookings", "inquiries", "vehicles", "push", "catalog", "dashboard", "notifications", "users", "uploads", "chats", "audit-logs"];
 
 const nextConfig: NextConfig = {
   cacheComponents: true,

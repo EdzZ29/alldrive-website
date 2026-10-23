@@ -3,7 +3,6 @@
 import { headers } from "next/headers";
 import nodemailer from "nodemailer";
 import { buildBookingEmail, buildCustomerEmail, type BookingDetails, type BookingMeta, type BusinessContact } from "@/lib/booking-email";
-import { buildCustomerSms, buildOwnerSms, sendSms, toPhMobile } from "@/lib/booking-sms";
 import { dashboardConfigured, sendBookingToDashboard } from "@/lib/dashboard";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { peso, places, site, zones, type VehicleId } from "@/lib/site";
@@ -12,17 +11,11 @@ import { getCatalog } from "@/lib/catalog";
 export type BookingResult = { ok: true } | { ok: false; error: string };
 
 const BOOKING_TO = process.env.BOOKING_EMAIL_TO || "alldrivebtc@gmail.com";
-// Team numbers that get a text for every booking (defaults to the call numbers on the site).
-const SMS_TO = (process.env.BOOKING_SMS_TO || site.phones.map((p) => p.display).join(","))
-  .split(",")
-  .map((n) => toPhMobile(n))
-  .filter((n): n is string => n !== null);
-const SMS_CONFIRM_CUSTOMER = process.env.BOOKING_SMS_CONFIRM_CUSTOMER !== "false";
 // The customer's "we received your booking" email. (The "confirmed" email comes from the
 // dashboard when an admin approves the booking.)
 const EMAIL_CONFIRM_CUSTOMER = process.env.BOOKING_EMAIL_CONFIRM_CUSTOMER !== "false";
 
-// Each booking sends emails and paid texts, so one visitor can only send a few in a row.
+// Each booking sends emails and dashboard alerts, so one visitor can only send a few in a row.
 const isRateLimited = createRateLimiter(5);
 
 const str = (data: FormData, key: string, max = 200) => String(data.get(key) ?? "").trim().slice(0, max);
@@ -137,20 +130,17 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
 
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
-  const smsKey = process.env.SEMAPHORE_API_KEY;
-  const smsSender = process.env.SEMAPHORE_SENDER_NAME || undefined;
   if (!dashboardConfigured) console.error("Booking not saved to the dashboard: set ALLDRIVE_API_URL and ALLDRIVE_API_KEY.");
-  if (!smsKey) console.error("Booking SMS not sent: set SEMAPHORE_API_KEY.");
-  if (!dashboardConfigured && (!user || !pass)) console.error("Backup booking email not possible: set GMAIL_USER and GMAIL_APP_PASSWORD.");
-  if (!dashboardConfigured && (!user || !pass) && !smsKey) {
+  if (!dashboardConfigured && (!user || !pass)) {
+    console.error("Backup booking email not possible: set GMAIL_USER and GMAIL_APP_PASSWORD.");
     return { ok: false, error: "Online booking is temporarily unavailable. Please text or message us instead." };
   }
 
   const transporter = user && pass ? nodemailer.createTransport({ service: "gmail", auth: { user, pass } }) : null;
 
-  // Bookings go to the admin dashboard (plus the team SMS, if set up). The team Gmail only gets
-  // the booking as a backup when the dashboard can't be reached, so nothing is lost.
-  const [dashboard, sms] = await Promise.allSettled([
+  // Bookings go to the admin dashboard. The team Gmail only gets the booking as a backup when
+  // the dashboard can't be reached, so nothing is lost.
+  const [dashboard] = await Promise.allSettled([
     dashboardConfigured
       ? sendBookingToDashboard({
           reference: meta.reference,
@@ -174,7 +164,6 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
           estimateText: estimate,
         })
       : Promise.reject(new Error("Dashboard not configured")),
-    smsKey ? sendSms(smsKey, SMS_TO, buildOwnerSms(details), smsSender) : Promise.reject(new Error("SMS not configured")),
   ]);
   if (dashboard.status === "rejected" && dashboardConfigured) console.error("Booking dashboard save failed:", dashboard.reason);
 
@@ -192,31 +181,22 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
           })
         : Promise.reject(new Error("Gmail not configured")),
   ]);
-  if (dashboard.status === "rejected" && email.status === "rejected") console.error("Backup booking email failed:", email.reason);
-  if (sms.status === "rejected" && smsKey) console.error("Booking SMS failed:", sms.reason);
-  if (dashboard.status === "rejected" && email.status === "rejected" && sms.status === "rejected") {
+  if (dashboard.status === "rejected" && email.status === "rejected") {
+    console.error("Backup booking email failed:", email.reason);
     return { ok: false, error: "We couldn't send your booking right now. Please text or message us instead." };
   }
 
   // Let the customer know it arrived. A failure here shouldn't undo a booking the team already has.
-  const callNumber = site.phones[0].display;
-  const customerNumber = toPhMobile(contact);
-  const confirmations = await Promise.allSettled([
-    smsKey && SMS_CONFIRM_CUSTOMER && customerNumber
-      ? sendSms(smsKey, [customerNumber], buildCustomerSms(details, callNumber), smsSender)
-      : null,
-    transporter && customerEmail && EMAIL_CONFIRM_CUSTOMER
-      ? transporter.sendMail({
-          from: `"${site.legalName}" <${user}>`,
-          to: customerEmail,
-          replyTo: BOOKING_TO,
-          ...buildCustomerEmail(details, meta, business),
-        })
-      : null,
-  ]);
-  confirmations.forEach((r, i) => {
-    if (r.status === "rejected") console.error(`Customer confirmation ${i ? "email" : "SMS"} failed:`, r.reason);
-  });
+  if (transporter && customerEmail && EMAIL_CONFIRM_CUSTOMER) {
+    await transporter
+      .sendMail({
+        from: `"${site.legalName}" <${user}>`,
+        to: customerEmail,
+        replyTo: BOOKING_TO,
+        ...buildCustomerEmail(details, meta, business),
+      })
+      .catch((err) => console.error("Customer confirmation email failed:", err));
+  }
 
   return { ok: true };
 }

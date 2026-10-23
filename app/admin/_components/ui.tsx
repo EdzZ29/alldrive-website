@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { api, errorText, type Paged } from "../_lib/api";
 
 /** Native select styled like the site's inputs (simple and reliable on phones). 16px text on
  * phones, or iOS zooms in when it's tapped. */
@@ -166,6 +167,114 @@ export function useAutoRefresh(refresh: () => void, ms = 30_000) {
       document.removeEventListener("visibilitychange", tick);
     };
   }, [refresh, ms]);
+}
+
+// ---------- Lists: pages and search ----------
+
+/** "Showing 21–40 of 132" with previous/next buttons. Hidden when everything fits on one page. */
+export function Pagination({ page, limit, total, onPage }: { page: number; limit: number; total: number; onPage: (page: number) => void }) {
+  const pages = Math.max(1, Math.ceil(total / limit));
+  if (total <= limit && page === 1) return null;
+  const from = total ? (page - 1) * limit + 1 : 0;
+  const to = Math.min(total, page * limit);
+  const button = "grid size-11 place-items-center rounded-xl border border-line bg-white text-ink transition hover:border-ink disabled:pointer-events-none disabled:opacity-40";
+  return (
+    <nav aria-label="Pages" className="mt-4 flex items-center justify-between gap-3">
+      <p className="text-sm text-muted-foreground">
+        Showing <span className="font-semibold text-ink">{from}–{to}</span> of <span className="font-semibold text-ink">{total}</span>
+      </p>
+      <div className="flex items-center gap-2">
+        <button onClick={() => onPage(page - 1)} disabled={page <= 1} aria-label="Previous page" className={button}>
+          <ChevronLeft className="size-5" />
+        </button>
+        <span className="min-w-16 text-center text-sm font-semibold tabular-nums">
+          {page} / {pages}
+        </span>
+        <button onClick={() => onPage(page + 1)} disabled={page >= pages} aria-label="Next page" className={button}>
+          <ChevronRight className="size-5" />
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+/** Search field that reports what was typed a moment after typing stops. */
+export function SearchBox({ value, onChange, placeholder, label }: { value: string; onChange: (q: string) => void; placeholder: string; label: string }) {
+  const [text, setText] = useState(value);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+  useEffect(() => {
+    if (text.trim() === value) return;
+    const timer = window.setTimeout(() => onChangeRef.current(text.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [text, value]);
+  return (
+    <div className="relative mb-4">
+      <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        type="search"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={placeholder}
+        aria-label={label}
+        maxLength={100}
+        className="h-11 rounded-xl bg-white pr-10 pl-10"
+      />
+      {text && (
+        <button
+          onClick={() => {
+            setText("");
+            onChangeRef.current("");
+          }}
+          aria-label="Clear search"
+          className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-ink"
+        >
+          <X className="size-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * One page of a backend list (`?page=&limit=&filter=&q=`). Keeps the previous page on screen
+ * while the next one loads. `reload` refetches the current page (after a change or live event).
+ */
+export function usePagedList<T, F extends string = string>(path: string, params: { page: number; limit?: number; filter?: F; q?: string; extra?: Record<string, string | undefined> }) {
+  const [data, setData] = useState<Paged<T, F> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const search = new URLSearchParams();
+  search.set("page", String(params.page));
+  search.set("limit", String(params.limit ?? 20));
+  if (params.filter) search.set("filter", params.filter);
+  if (params.q) search.set("q", params.q);
+  for (const [k, v] of Object.entries(params.extra ?? {})) if (v) search.set(k, v);
+  const url = `${path}?${search}`;
+
+  const reload = useCallback(
+    () =>
+      api<Paged<T, F>>(url).then(
+        (result) => {
+          setData(result);
+          setError(null);
+        },
+        (err) => setError(errorText(err, "Couldn't load the list.")),
+      ),
+    [url],
+  );
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+  return { data, error, reload, setData };
+}
+
+/** Client-side pages for short lists (units, admins). */
+export function pageSlice<T>(items: T[], page: number, limit = 20) {
+  const pages = Math.max(1, Math.ceil(items.length / limit));
+  const current = Math.min(page, pages);
+  return { items: items.slice((current - 1) * limit, current * limit), page: current, total: items.length, limit };
 }
 
 /** Drops ?id= from the address bar so a reload doesn't reopen the same item. */

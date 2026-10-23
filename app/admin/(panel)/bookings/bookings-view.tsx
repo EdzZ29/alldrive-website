@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CalendarCheck, Car, Loader2, Mail, MapPin, MessageSquareText, Phone, RefreshCw, Send } from "lucide-react";
+import { CalendarCheck, Car, Loader2, Mail, MapPin, MessageSquareText, Phone, RefreshCw, Send, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   api,
+  ApiError,
   BOOKING_NEXT,
   errorText,
   formatDay,
@@ -19,27 +20,33 @@ import {
   PAYMENT_STATUSES,
   phoneDigits,
   priceText,
-  toPhMobile,
   type Booking,
   type BookingStatus,
   type BookingWithEmail,
   type EmailResult,
   type PaymentMethod,
   type PaymentStatus,
-  type SmsResult,
   type Vehicle,
 } from "../../_lib/api";
 import { useLive, useLiveEvents } from "../../_components/live";
-import { Detail, Field, FilterChips, PageTitle, selectClass, SheetActions, sheetClass, StatusBadge, useAutoRefresh } from "../../_components/ui";
+import { useRestoredEvents, useUndo } from "../../_components/undo";
+import {
+  Detail,
+  Field,
+  FilterChips,
+  PageTitle,
+  Pagination,
+  SearchBox,
+  selectClass,
+  SheetActions,
+  sheetClass,
+  StatusBadge,
+  useAutoRefresh,
+  usePagedList,
+} from "../../_components/ui";
 
-const FILTERS = {
-  Pending: (b: Booking) => b.status === "Pending",
-  Active: (b: Booking) => b.status === "Approved" || b.status === "Returned",
-  History: (b: Booking) => b.status === "Completed" || b.status === "Declined" || b.status === "Cancelled",
-  All: () => true,
-};
-type Filter = keyof typeof FILTERS;
-const FILTER_NAMES = Object.keys(FILTERS) as Filter[];
+const FILTER_NAMES = ["Pending", "Active", "History", "All"] as const;
+type Filter = (typeof FILTER_NAMES)[number];
 
 export function BookingsView() {
   const router = useRouter();
@@ -47,55 +54,56 @@ export function BookingsView() {
   // The open booking lives in the URL (?id=), so notifications and links can open one.
   const openId = Number(useSearchParams().get("id")) || null;
   const { refreshSummary } = useLive();
-  const [bookings, setBookings] = useState<Booking[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const offerUndo = useUndo();
   const [filter, setFilter] = useState<Filter>("Pending");
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [refreshing, setRefreshing] = useState(false);
+  const { data, error, reload, setData } = usePagedList<Booking, Filter>("/bookings", { page, filter, q });
 
-  // Fetches the list. State only changes in the request's callbacks.
-  const load = useCallback(
-    () =>
-      api<Booking[]>("/bookings").then(
-        (list) => {
-          setBookings(list);
-          setError(null);
-        },
-        (err) => setError(errorText(err, "Couldn't load bookings.")),
-      ),
-    [],
-  );
+  // A booking opened from a notification may be on another page: load it on its own.
+  const [fetched, setFetched] = useState<Booking | null>(null);
+  const [missing, setMissing] = useState<number | null>(null);
+  const inList = openId ? (data?.items.find((b) => b.id === openId) ?? null) : null;
+  useEffect(() => {
+    if (!openId || inList) return;
+    api<Booking>(`/bookings/${openId}`).then(setFetched, (err) => {
+      if (err instanceof ApiError && err.status === 404) setMissing(openId);
+    });
+  }, [openId, inList]);
+  const open = inList ?? (fetched?.id === openId ? fetched : null);
 
   const refresh = async () => {
     setRefreshing(true);
-    await load();
+    await reload();
     setRefreshing(false);
   };
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-  useAutoRefresh(load);
-  // A new booking arrived: add it right away (or reload if it came without details).
-  useLiveEvents(
-    useCallback(
-      (n) => {
-        if (n.type !== "booking") return;
-        if (n.booking) setBookings((list) => (list && !list.some((b) => b.id === n.booking!.id) ? [n.booking!, ...list] : list));
-        else void load();
-      },
-      [load],
-    ),
+  useAutoRefresh(reload);
+  // A new booking arrived, or something was restored: reload this page (and the counts).
+  useLiveEvents(useCallback((n) => n.type === "booking" && void reload(), [reload]));
+  useRestoredEvents(
+    useCallback(() => {
+      void reload();
+      refreshSummary();
+    }, [reload, refreshSummary]),
   );
-
-  const visible = useMemo(() => (bookings ?? []).filter(FILTERS[filter]), [bookings, filter]);
-  const open = openId ? (bookings?.find((b) => b.id === openId) ?? null) : null;
 
   const show = (id: number | null) => router.replace(id ? `${pathname}?id=${id}` : pathname, { scroll: false });
   const replace = (updated: Booking) => {
-    setBookings((list) => list?.map((b) => (b.id === updated.id ? updated : b)) ?? [updated]);
+    setData((d) => d && { ...d, items: d.items.map((b) => (b.id === updated.id ? updated : b)) });
+    setFetched((b) => (b?.id === updated.id ? updated : b));
     refreshSummary(); // pending/active counts in the sidebar
   };
+  const deleted = (booking: Booking) => {
+    show(null);
+    // The last one on a later page: go back a page.
+    if (data && data.items.length === 1 && page > 1) setPage(page - 1);
+    else void reload();
+    refreshSummary();
+    offerUndo(`Booking ${booking.reference} deleted`, () => api(`/bookings/${booking.id}/restore`, { method: "POST" }));
+  };
 
+  const items = data?.items ?? [];
   return (
     <>
       <PageTitle
@@ -108,7 +116,25 @@ export function BookingsView() {
         }
       />
 
-      <FilterChips label="Filter bookings" options={FILTER_NAMES} value={filter} onChange={setFilter} count={bookings ? (f) => bookings.filter(FILTERS[f]).length : undefined} />
+      <SearchBox
+        value={q}
+        onChange={(text) => {
+          setQ(text);
+          setPage(1);
+        }}
+        placeholder="Search name, booking code, phone, email or car"
+        label="Search bookings"
+      />
+      <FilterChips
+        label="Filter bookings"
+        options={FILTER_NAMES}
+        value={filter}
+        onChange={(f) => {
+          setFilter(f);
+          setPage(1);
+        }}
+        count={data?.counts ? (f) => data.counts![f] : undefined}
+      />
 
       {error && (
         <p role="alert" className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
@@ -116,21 +142,21 @@ export function BookingsView() {
         </p>
       )}
 
-      {!bookings ? (
+      {!data ? (
         !error && (
           <div className="grid place-items-center py-16 text-muted-foreground">
             <Loader2 className="size-6 animate-spin" aria-label="Loading" />
           </div>
         )
-      ) : visible.length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="grid place-items-center rounded-2xl border border-dashed border-line bg-white px-4 py-16 text-center">
           <CalendarCheck className="size-7 text-muted-foreground" />
-          <p className="mt-2 font-semibold">No {filter === "All" ? "" : filter.toLowerCase() + " "}bookings</p>
-          {filter === "Pending" && <p className="text-sm text-muted-foreground">New website bookings show up here instantly.</p>}
+          <p className="mt-2 font-semibold">{q ? `No bookings match "${q}"` : `No ${filter === "All" ? "" : filter.toLowerCase() + " "}bookings`}</p>
+          {filter === "Pending" && !q && <p className="text-sm text-muted-foreground">New website bookings show up here instantly.</p>}
         </div>
       ) : (
         <ul className="grid gap-3">
-          {visible.map((b) => (
+          {items.map((b) => (
             <li key={b.id}>
               <button
                 onClick={() => show(b.id)}
@@ -172,16 +198,17 @@ export function BookingsView() {
           ))}
         </ul>
       )}
+      {data && <Pagination page={data.page} limit={data.limit} total={data.total} onPage={setPage} />}
 
       <Dialog open={!!open} onOpenChange={(o) => !o && show(null)}>
         {/* No auto-focus: on phones it would pop the keyboard up over the details. */}
         <DialogContent className={sheetClass} onOpenAutoFocus={(e) => e.preventDefault()}>
-          {open && <BookingDetails key={open.id} booking={open} onChange={replace} />}
+          {open && <BookingDetails key={open.id} booking={open} onChange={replace} onDeleted={deleted} />}
         </DialogContent>
       </Dialog>
-      {openId != null && bookings && !open && (
+      {openId != null && missing === openId && (
         <p role="alert" className="mt-4 text-sm font-semibold text-red-600">
-          That booking wasn&apos;t found. It may have been removed.
+          That booking wasn&apos;t found. It may have been deleted.
         </p>
       )}
     </>
@@ -189,26 +216,37 @@ export function BookingsView() {
 }
 
 const STATUS_ACTIONS: Partial<Record<BookingStatus, { label: string; confirm?: string; variant: "ink" | "outline" | "destructive" }>> = {
-  Approved: { label: "Approve & notify customer", variant: "ink" },
+  Approved: { label: "Approve & email customer", variant: "ink" },
   Returned: { label: "Mark returned", variant: "outline" },
   Completed: { label: "Complete", variant: "ink" },
   Declined: { label: "Decline", variant: "destructive", confirm: "Decline this booking? Let the customer know by call or text." },
   Cancelled: { label: "Cancel booking", variant: "outline", confirm: "Cancel this booking? The assigned car becomes available again." },
 };
 
-/** What to tell the admin after a status change (and the automatic confirmation email and text). */
-function statusMessage(status: BookingStatus | null, updated: BookingWithEmail) {
-  const { confirmationEmail: email, confirmationSms: sms } = updated;
+/** What to tell the admin after a status change (and the automatic approval email). */
+function statusMessage(status: BookingStatus | null, email: EmailResult | undefined) {
   const parts = status ? [`Booking ${status.toLowerCase()}.`] : [];
-  if (email) parts.push(email.sent ? `Confirmation emailed to ${email.to}.` : `Email not sent: ${email.message}`);
-  if (sms) parts.push(sms.sent ? `Texted ${sms.to}.` : `Text not sent: ${sms.message}`);
-  // Fine if at least one went out and nothing failed; otherwise the admin should call the customer.
-  const failed = (r: EmailResult | SmsResult | undefined) => !!r && !r.sent && r.reason === "failed";
-  const nothingSent = (email || sms) && !email?.sent && !sms?.sent;
-  return { ok: !failed(email) && !failed(sms) && !nothingSent, text: parts.join(" ") };
+  if (email) parts.push(email.sent ? `Approval email sent to ${email.to}.` : `Email not sent: ${email.message}`);
+  // No email address is expected sometimes; a real failure means the admin should call instead.
+  return { ok: !email || email.sent || email.reason === "no-email", text: parts.join(" ") };
 }
 
-function BookingDetails({ booking, onChange }: { booking: Booking; onChange: (b: Booking) => void }) {
+/**
+ * The approval email, from the dashboard server, or from the website when the server can't send
+ * email (its host may block it): the website gets the same email from the server and sends it.
+ */
+async function deliverApproval(id: number, first: BookingWithEmail): Promise<BookingWithEmail> {
+  const email = first.confirmationEmail;
+  if (!email || email.sent || email.reason === "no-email") return first;
+  try {
+    const sent = await api<BookingWithEmail>("/send-confirmation", { method: "POST", body: { id } });
+    return { ...first, ...sent, confirmationEmail: sent.confirmationEmail ?? { sent: true, to: first.customerEmail ?? "" } };
+  } catch (err) {
+    return { ...first, confirmationEmail: { sent: false, reason: "failed", message: errorText(err, "Couldn't send the email.") } };
+  }
+}
+
+function BookingDetails({ booking, onChange, onDeleted }: { booking: Booking; onChange: (b: Booking) => void; onDeleted: (b: Booking) => void }) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const [vehicleId, setVehicleId] = useState(booking.vehicleId ? String(booking.vehicleId) : "");
   const [price, setPrice] = useState(booking.totalPrice == null ? "" : String(Number(booking.totalPrice)));
@@ -269,9 +307,10 @@ function BookingDetails({ booking, onChange }: { booking: Booking; onChange: (b:
     setBusy(status);
     setMessage(null);
     try {
-      const updated = await api<BookingWithEmail>(`/bookings/${booking.id}/status`, { method: "PATCH", body: { status } });
+      let updated = await api<BookingWithEmail>(`/bookings/${booking.id}/status`, { method: "PATCH", body: { status } });
+      if (status === "Approved") updated = await deliverApproval(booking.id, updated);
       onChange(updated);
-      setMessage(statusMessage(status, updated));
+      setMessage(statusMessage(status, updated.confirmationEmail));
     } catch (err) {
       setMessage({ ok: false, text: errorText(err) });
     } finally {
@@ -283,12 +322,26 @@ function BookingDetails({ booking, onChange }: { booking: Booking; onChange: (b:
     setBusy("email");
     setMessage(null);
     try {
-      const updated = await api<BookingWithEmail>(`/bookings/${booking.id}/confirmation-email`, { method: "POST" });
+      const first = await api<BookingWithEmail>(`/bookings/${booking.id}/confirmation-email`, { method: "POST" });
+      const updated = await deliverApproval(booking.id, first);
       onChange(updated);
-      setMessage(statusMessage(null, updated));
+      setMessage(statusMessage(null, updated.confirmationEmail));
     } catch (err) {
       setMessage({ ok: false, text: errorText(err) });
     } finally {
+      setBusy(null);
+    }
+  };
+
+  const remove = async () => {
+    if (!window.confirm(`Delete booking ${booking.reference}? You can undo this right after, or restore it later from the Activity log.`)) return;
+    setBusy("delete");
+    setMessage(null);
+    try {
+      await api(`/bookings/${booking.id}`, { method: "DELETE" });
+      onDeleted(booking);
+    } catch (err) {
+      setMessage({ ok: false, text: errorText(err) });
       setBusy(null);
     }
   };
@@ -352,7 +405,7 @@ function BookingDetails({ booking, onChange }: { booking: Booking; onChange: (b:
         </Detail>
       </dl>
 
-      {/* The confirmation email and text go out automatically when the booking is approved. */}
+      {/* The approval email goes out automatically when the booking is approved. */}
       <section className="grid gap-3 rounded-2xl border border-line p-4">
         <Field id="bk-email" label="Customer email">
           <Input
@@ -367,50 +420,29 @@ function BookingDetails({ booking, onChange }: { booking: Booking; onChange: (b:
           />
         </Field>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          {booking.status === "Approved" || booking.confirmationEmailSentAt || booking.confirmationSmsSentAt ? (
-            <div className="grid gap-1 text-sm">
-              <p className="flex items-center gap-2">
-                <Mail className="size-4 shrink-0 text-muted-foreground" />
-                {booking.confirmationEmailSentAt ? (
-                  <span>
-                    Confirmation emailed <span className="font-semibold">{formatWhen(booking.confirmationEmailSentAt)}</span>
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">Confirmation email not sent</span>
-                )}
-              </p>
-              <p className="flex items-center gap-2">
-                <MessageSquareText className="size-4 shrink-0 text-muted-foreground" />
-                {booking.confirmationSmsSentAt ? (
-                  <span>
-                    Confirmation texted <span className="font-semibold">{formatWhen(booking.confirmationSmsSentAt)}</span>
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">Confirmation text not sent</span>
-                )}
-              </p>
-            </div>
-          ) : (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Send className="size-4 shrink-0" />
-              Approving emails and texts the customer &quot;Booking Confirmed&quot; with the pickup day and time
-            </p>
-          )}
+          <p className="flex items-center gap-2 text-sm">
+            <Mail className="size-4 shrink-0 text-muted-foreground" />
+            {booking.confirmationEmailSentAt ? (
+              <span>
+                Approval email sent <span className="font-semibold">{formatWhen(booking.confirmationEmailSentAt)}</span>
+              </span>
+            ) : booking.status === "Approved" ? (
+              <span className="text-muted-foreground">Approval email not sent yet</span>
+            ) : (
+              <span className="text-muted-foreground">Approving emails the customer &quot;Your booking is approved&quot; with the details</span>
+            )}
+          </p>
           {booking.status === "Approved" && (
             <Button
               variant="outline"
               size="md"
-              disabled={
-                !!busy ||
-                (!booking.customerEmail && !toPhMobile(booking.customerPhone)) ||
-                email.trim() !== (booking.customerEmail ?? "")
-              }
-              title={email.trim() !== (booking.customerEmail ?? "") ? "Save the new email first" : undefined}
+              disabled={!!busy || !booking.customerEmail || email.trim() !== (booking.customerEmail ?? "")}
+              title={email.trim() !== (booking.customerEmail ?? "") ? "Save the new email first" : !booking.customerEmail ? "Add the customer's email first" : undefined}
               onClick={() => void resend()}
               className="rounded-xl border-line"
             >
               {busy === "email" ? <Loader2 className="animate-spin" /> : <Send />}
-              {booking.confirmationEmailSentAt || booking.confirmationSmsSentAt ? "Resend confirmation" : "Send confirmation"}
+              {booking.confirmationEmailSentAt ? "Resend approval email" : "Send approval email"}
             </Button>
           )}
         </div>
@@ -483,6 +515,9 @@ function BookingDetails({ booking, onChange }: { booking: Booking; onChange: (b:
               </Button>
             );
           })}
+          <Button variant="ghost" size="md" disabled={!!busy} onClick={() => void remove()} className="rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700">
+            {busy === "delete" ? <Loader2 className="animate-spin" /> : <Trash2 />} Delete
+          </Button>
         </div>
         <Button variant="brand-light" size="md" disabled={!dirty || !!busy} onClick={() => void save()} className="max-sm:flex-1">
           {busy === "save" && <Loader2 className="animate-spin" />} Save changes

@@ -1,19 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Inbox, Loader2, Mail, MessageSquareText, Phone, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { api, errorText, formatWhen, INQUIRY_STATUSES, phoneDigits, type Inquiry, type InquiryStatus } from "../../_lib/api";
+import { api, ApiError, errorText, formatWhen, INQUIRY_STATUSES, phoneDigits, type Inquiry, type InquiryStatus } from "../../_lib/api";
 import { useLive, useLiveEvents } from "../../_components/live";
-import { Field, FilterChips, PageTitle, selectClass, SheetActions, sheetClass, StatusBadge, useAutoRefresh } from "../../_components/ui";
+import { useRestoredEvents, useUndo } from "../../_components/undo";
+import {
+  Field,
+  FilterChips,
+  PageTitle,
+  Pagination,
+  SearchBox,
+  selectClass,
+  SheetActions,
+  sheetClass,
+  StatusBadge,
+  useAutoRefresh,
+  usePagedList,
+} from "../../_components/ui";
 
-type Filter = "Open" | InquiryStatus | "All";
-const FILTERS: Filter[] = ["Open", ...INQUIRY_STATUSES, "All"];
-const matches = (f: Filter, i: Inquiry) => (f === "All" ? true : f === "Open" ? i.status !== "Closed" : i.status === f);
+const FILTERS = ["Open", ...INQUIRY_STATUSES, "All"] as const;
+type Filter = (typeof FILTERS)[number];
 
 export function InquiriesView() {
   const router = useRouter();
@@ -21,49 +33,41 @@ export function InquiriesView() {
   // The open inquiry lives in the URL (?id=), so notifications and links can open one.
   const openId = Number(useSearchParams().get("id")) || null;
   const { refreshSummary } = useLive();
-  const [inquiries, setInquiries] = useState<Inquiry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const offerUndo = useUndo();
   const [filter, setFilter] = useState<Filter>("Open");
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [refreshing, setRefreshing] = useState(false);
+  const { data, error, reload, setData } = usePagedList<Inquiry, Filter>("/inquiries", { page, filter, q });
 
-  // Fetches the list. State only changes in the request's callbacks.
-  const load = useCallback(
-    () =>
-      api<Inquiry[]>("/inquiries").then(
-        (list) => {
-          setInquiries(list);
-          setError(null);
-        },
-        (err) => setError(errorText(err, "Couldn't load inquiries.")),
-      ),
-    [],
-  );
+  // An inquiry opened from a notification may be on another page: load it on its own.
+  const [fetched, setFetched] = useState<Inquiry | null>(null);
+  const [missing, setMissing] = useState<number | null>(null);
+  const inList = openId ? (data?.items.find((i) => i.id === openId) ?? null) : null;
+  useEffect(() => {
+    if (!openId || inList) return;
+    api<Inquiry>(`/inquiries/${openId}`).then(setFetched, (err) => {
+      if (err instanceof ApiError && err.status === 404) setMissing(openId);
+    });
+  }, [openId, inList]);
+  const open = inList ?? (fetched?.id === openId ? fetched : null);
 
   const refresh = async () => {
     setRefreshing(true);
-    await load();
+    await reload();
     setRefreshing(false);
   };
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-  useAutoRefresh(load);
-  // A new inquiry arrived: add it right away (or reload if it came without details).
-  useLiveEvents(
-    useCallback(
-      (n) => {
-        if (n.type !== "inquiry") return;
-        if (n.inquiry) setInquiries((list) => (list && !list.some((i) => i.id === n.inquiry!.id) ? [n.inquiry!, ...list] : list));
-        else void load();
-      },
-      [load],
-    ),
+  useAutoRefresh(reload);
+  useLiveEvents(useCallback((n) => n.type === "inquiry" && void reload(), [reload]));
+  useRestoredEvents(
+    useCallback(() => {
+      void reload();
+      refreshSummary();
+    }, [reload, refreshSummary]),
   );
 
-  const visible = useMemo(() => (inquiries ?? []).filter((i) => matches(filter, i)), [inquiries, filter]);
-  const open = openId ? (inquiries?.find((i) => i.id === openId) ?? null) : null;
   const show = (id: number | null) => router.replace(id ? `${pathname}?id=${id}` : pathname, { scroll: false });
+  const items = data?.items ?? [];
 
   return (
     <>
@@ -77,12 +81,24 @@ export function InquiriesView() {
         }
       />
 
+      <SearchBox
+        value={q}
+        onChange={(text) => {
+          setQ(text);
+          setPage(1);
+        }}
+        placeholder="Search name, number, email, topic or message"
+        label="Search inquiries"
+      />
       <FilterChips
         label="Filter inquiries"
         options={FILTERS}
         value={filter}
-        onChange={setFilter}
-        count={inquiries ? (f) => inquiries.filter((i) => matches(f, i)).length : undefined}
+        onChange={(f) => {
+          setFilter(f);
+          setPage(1);
+        }}
+        count={data?.counts ? (f) => data.counts![f] : undefined}
       />
 
       {error && (
@@ -91,20 +107,20 @@ export function InquiriesView() {
         </p>
       )}
 
-      {!inquiries ? (
+      {!data ? (
         !error && (
           <div className="grid place-items-center py-16 text-muted-foreground">
             <Loader2 className="size-6 animate-spin" aria-label="Loading" />
           </div>
         )
-      ) : visible.length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="grid place-items-center rounded-2xl border border-dashed border-line bg-white px-4 py-16 text-center">
           <Inbox className="size-7 text-muted-foreground" />
-          <p className="mt-2 font-semibold">No inquiries here</p>
+          <p className="mt-2 font-semibold">{q ? `No inquiries match "${q}"` : "No inquiries here"}</p>
         </div>
       ) : (
         <ul className="grid gap-3">
-          {visible.map((i) => (
+          {items.map((i) => (
             <li key={i.id}>
               <button
                 onClick={() => show(i.id)}
@@ -122,6 +138,7 @@ export function InquiriesView() {
           ))}
         </ul>
       )}
+      {data && <Pagination page={data.page} limit={data.limit} total={data.total} onPage={setPage} />}
 
       <Dialog open={!!open} onOpenChange={(o) => !o && show(null)}>
         {/* No auto-focus: on phones it would pop the keyboard up over the message. */}
@@ -131,19 +148,22 @@ export function InquiriesView() {
               key={open.id}
               inquiry={open}
               onChange={(u) => {
-                setInquiries((list) => list?.map((i) => (i.id === u.id ? u : i)) ?? [u]);
+                setData((d) => d && { ...d, items: d.items.map((i) => (i.id === u.id ? u : i)) });
+                setFetched((i) => (i?.id === u.id ? u : i));
                 refreshSummary();
               }}
-              onDeleted={() => {
-                setInquiries((list) => list?.filter((i) => i.id !== open.id) ?? null);
-                refreshSummary();
+              onDeleted={(inquiry) => {
                 show(null);
+                if (data && data.items.length === 1 && page > 1) setPage(page - 1);
+                else void reload();
+                refreshSummary();
+                offerUndo(`Inquiry from ${inquiry.name} deleted`, () => api(`/inquiries/${inquiry.id}/restore`, { method: "POST" }));
               }}
             />
           )}
         </DialogContent>
       </Dialog>
-      {openId != null && inquiries && !open && (
+      {openId != null && missing === openId && (
         <p role="alert" className="mt-4 text-sm font-semibold text-red-600">
           That inquiry wasn&apos;t found. It may have been deleted.
         </p>
@@ -152,7 +172,7 @@ export function InquiriesView() {
   );
 }
 
-function InquiryDetails({ inquiry, onChange, onDeleted }: { inquiry: Inquiry; onChange: (i: Inquiry) => void; onDeleted: () => void }) {
+function InquiryDetails({ inquiry, onChange, onDeleted }: { inquiry: Inquiry; onChange: (i: Inquiry) => void; onDeleted: (i: Inquiry) => void }) {
   const [status, setStatus] = useState<InquiryStatus>(inquiry.status);
   const [notes, setNotes] = useState(inquiry.notes ?? "");
   const [busy, setBusy] = useState<"save" | "delete" | null>(null);
@@ -174,12 +194,12 @@ function InquiryDetails({ inquiry, onChange, onDeleted }: { inquiry: Inquiry; on
   };
 
   const remove = async () => {
-    if (!window.confirm("Delete this inquiry? Use this for spam. It can't be undone.")) return;
+    if (!window.confirm("Delete this inquiry? You can undo this right after, or restore it later from the Activity log.")) return;
     setBusy("delete");
     setMessage(null);
     try {
       await api(`/inquiries/${inquiry.id}`, { method: "DELETE" });
-      onDeleted();
+      onDeleted(inquiry);
     } catch (err) {
       setMessage({ ok: false, text: errorText(err) });
       setBusy(null);

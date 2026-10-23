@@ -3,12 +3,13 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, Car, ExternalLink, LayoutDashboard, Loader2, LogOut, Menu, MessagesSquare, MessageSquareText, Settings } from "lucide-react";
+import { CalendarCheck, Car, ExternalLink, History, LayoutDashboard, Loader2, LogOut, Menu, MessagesSquare, MessageSquareText, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { api, ApiError, errorText, type User } from "../_lib/api";
 import { disablePush } from "../_lib/push";
 import { LiveProvider, NotificationBell, useLive } from "./live";
+import { UndoProvider } from "./undo";
 
 type AdminContextValue = { user: User; setUser: (u: User) => void };
 const AdminContext = createContext<AdminContextValue | null>(null);
@@ -25,6 +26,7 @@ const NAV: NavItem[] = [
   { href: "/admin/messages", label: "Messages", Icon: MessagesSquare, badge: "chats" },
   { href: "/admin/inquiries", label: "Inquiries", Icon: MessageSquareText, badge: "inquiries" },
   { href: "/admin/fleet", label: "Fleet & prices", Icon: Car },
+  { href: "/admin/activity", label: "Activity log", Icon: History },
   { href: "/admin/settings", label: "Settings", Icon: Settings },
 ];
 
@@ -83,7 +85,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <AdminContext.Provider value={{ user, setUser }}>
       <LiveProvider>
-        <Frame user={user}>{children}</Frame>
+        <UndoProvider>
+          <Frame user={user}>{children}</Frame>
+        </UndoProvider>
       </LiveProvider>
     </AdminContext.Provider>
   );

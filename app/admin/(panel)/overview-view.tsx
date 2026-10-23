@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CalendarCheck, Car, Hourglass, MessageSquareText, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { api, formatDay, formatWhen, priceText, type Booking, type Inquiry } from "../_lib/api";
+import { api, formatDay, formatWhen, priceText, type Booking, type Inquiry, type Paged } from "../_lib/api";
 import { checkPush } from "../_lib/push";
 import { useAdmin } from "../_components/admin-shell";
 import { useLive, useLiveEvents } from "../_components/live";
@@ -35,10 +35,11 @@ export function OverviewView() {
 
   const load = useCallback(
     () =>
-      Promise.all([api<Booking[]>("/bookings"), api<Inquiry[]>("/inquiries")]).then(
+      // Just the newest few of each.
+      Promise.all([api<Paged<Booking>>("/bookings?filter=Pending&limit=5"), api<Paged<Inquiry>>("/inquiries?filter=New&limit=5")]).then(
         ([b, i]) => {
-          setBookings(b);
-          setInquiries(i);
+          setBookings(b.items);
+          setInquiries(i.items);
         },
         (err) => console.error("[overview]", err),
       ),
@@ -51,8 +52,8 @@ export function OverviewView() {
   }, [load]);
   useLiveEvents(useCallback(() => void load(), [load]));
 
-  const pending = (bookings ?? []).filter((b) => b.status === "Pending").slice(0, 5);
-  const fresh = (inquiries ?? []).filter((i) => i.status === "New").slice(0, 5);
+  const pending = bookings ?? [];
+  const fresh = inquiries ?? [];
   const units = summary?.units;
   const unitTotal = units ? Object.values(units).reduce((a, b) => a + b, 0) : 0;
 

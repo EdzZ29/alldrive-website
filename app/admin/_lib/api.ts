@@ -52,6 +52,9 @@ export const errorText = (err: unknown, fallback = "Something went wrong. Please
 
 // --- Shapes returned by the backend (all-drive-backend entities) ----------------------------
 
+/** One page of a list, plus how many items each filter tab has. */
+export type Paged<T, F extends string = string> = { items: T[]; total: number; page: number; limit: number; counts?: Record<F, number> };
+
 export type User = { id: number; name: string; email: string; phone: string | null; role: "admin"; isActive: boolean; createdAt: string };
 
 export type BookingStatus = "Pending" | "Approved" | "Declined" | "Returned" | "Completed" | "Cancelled";
@@ -135,22 +138,13 @@ export type Booking = {
   status: BookingStatus;
   // When the "booking confirmed" email reached the customer (null = not sent).
   confirmationEmailSentAt: string | null;
-  // When the "booking confirmed" text (SMS) reached the customer.
-  confirmationSmsSentAt: string | null;
   createdAt: string;
 };
 
-/** What happened with the confirmation email and text (returned when a booking is approved or resent). */
+/** What happened with the confirmation email (returned when a booking is approved or resent). */
 export type EmailResult = { sent: true; to: string } | { sent: false; reason: "no-email" | "not-configured" | "failed"; message: string };
-export type SmsResult = { sent: true; to: string } | { sent: false; reason: "no-phone" | "not-configured" | "failed"; message: string };
-export type BookingWithEmail = Booking & { confirmationEmail?: EmailResult; confirmationSms?: SmsResult };
+export type BookingWithEmail = Booking & { confirmationEmail?: EmailResult };
 
-/** "0917 123 4567", "+63 917…" -> "09171234567"; null if it isn't a PH mobile number (as the backend). */
-export function toPhMobile(value: string) {
-  const digits = value.replace(/\D/g, "");
-  const local = digits.startsWith("63") ? `0${digits.slice(2)}` : digits.startsWith("9") ? `0${digits}` : digits;
-  return /^09\d{9}$/.test(local) ? local : null;
-}
 
 /** A live chat from the website's chat bubble. */
 export type ChatStatus = "Open" | "Closed";
@@ -178,6 +172,32 @@ export type ChatMessage = {
 export type ChatWithMessages = Chat & { messages: ChatMessage[] };
 /** Live "chat" event from the notifications stream. */
 export type ChatEvent = { conversation: Chat; messages: ChatMessage[] };
+
+/** One line of the activity log. */
+export type AuditEntityType = "booking" | "inquiry" | "chat" | "vehicle" | "admin" | "catalog" | "account";
+export type AuditLog = {
+  id: number;
+  createdAt: string;
+  actorType: "admin" | "website" | "system";
+  actorId: number | null;
+  actorName: string;
+  action: string;
+  entityType: AuditEntityType;
+  entityId: number | null;
+  entityLabel: string;
+  summary: string;
+  // Deleted items that are still deleted (and can be brought back).
+  canRestore?: boolean;
+};
+
+/** Where to restore each kind of deleted item. */
+export const RESTORE_PATH: Partial<Record<AuditEntityType, (id: number) => string>> = {
+  booking: (id) => `/bookings/${id}/restore`,
+  inquiry: (id) => `/inquiries/${id}/restore`,
+  chat: (id) => `/chats/${id}/restore`,
+  vehicle: (id) => `/vehicles/${id}/restore`,
+  admin: (id) => `/users/${id}/restore`,
+};
 
 export type InquiryStatus = "New" | "Contacted" | "Closed";
 

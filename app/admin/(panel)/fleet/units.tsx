@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, errorText, UNIT_STATUSES, type UnitStatus, type Vehicle } from "../../_lib/api";
 import { uploadCarPhoto } from "../../_lib/images";
 import { useLive } from "../../_components/live";
-import { Field, selectClass, SheetActions, sheetClass, StatusBadge } from "../../_components/ui";
+import { useRestoredEvents, useUndo } from "../../_components/undo";
+import { Field, pageSlice, Pagination, selectClass, SheetActions, sheetClass, StatusBadge } from "../../_components/ui";
 
 const TYPES = ["Sedan", "MPV", "SUV", "Pickup", "Van"];
 const TRANSMISSIONS = ["Automatic", "Manual"];
@@ -87,6 +88,8 @@ export function Units() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Vehicle | "new" | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const offerUndo = useUndo();
 
   const load = useCallback(
     () =>
@@ -107,6 +110,12 @@ export function Units() {
     void load();
     refreshSummary();
   };
+  useRestoredEvents(
+    useCallback(() => {
+      void load();
+      refreshSummary();
+    }, [load, refreshSummary]),
+  );
 
   const setStatus = async (v: Vehicle, status: UnitStatus) => {
     setBusyId(v.id);
@@ -120,6 +129,7 @@ export function Units() {
     }
   };
 
+  const shown = pageSlice(units ?? [], page);
   const counts = Object.fromEntries(UNIT_STATUSES.map((s) => [s, (units ?? []).filter((u) => u.status === s).length])) as Record<UnitStatus, number>;
 
   return (
@@ -157,7 +167,7 @@ export function Units() {
         </p>
       ) : (
         <ul className="grid gap-2">
-          {units.map((v) => (
+          {shown.items.map((v) => (
             <li key={v.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-white p-3 sm:flex-nowrap">
               <button onClick={() => setEditing(v)} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`Edit ${v.plateNumber}`}>
                 <UnitPhoto src={v.image} className="h-14 w-20 rounded-xl" />
@@ -192,6 +202,7 @@ export function Units() {
           ))}
         </ul>
       )}
+      {units && <Pagination page={shown.page} limit={shown.limit} total={shown.total} onPage={setPage} />}
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className={sheetClass} onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -199,9 +210,12 @@ export function Units() {
             <UnitForm
               key={editing === "new" ? "new" : editing.id}
               unit={editing === "new" ? null : editing}
-              onDone={() => {
+              onDone={(deleted) => {
                 setEditing(null);
                 changed();
+                if (deleted) {
+                  offerUndo(`${deleted.brand} ${deleted.model} (${deleted.plateNumber}) deleted`, () => api(`/vehicles/${deleted.id}/restore`, { method: "POST" }));
+                }
               }}
             />
           )}
@@ -211,7 +225,7 @@ export function Units() {
   );
 }
 
-function UnitForm({ unit, onDone }: { unit: Vehicle | null; onDone: () => void }) {
+function UnitForm({ unit, onDone }: { unit: Vehicle | null; onDone: (deleted?: Vehicle) => void }) {
   const [d, setD] = useState<Draft>(unit ? draftOf(unit) : empty);
   const [busy, setBusy] = useState<"save" | "delete" | "upload" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -270,11 +284,11 @@ function UnitForm({ unit, onDone }: { unit: Vehicle | null; onDone: () => void }
   };
 
   const remove = async () => {
-    if (!unit || !window.confirm(`Delete ${unit.brand} ${unit.model} (${unit.plateNumber})? Bookings it was assigned to keep their details but lose the assignment.`)) return;
+    if (!unit || !window.confirm(`Delete ${unit.brand} ${unit.model} (${unit.plateNumber})? You can undo this right after, or restore it later from the Activity log.`)) return;
     setBusy("delete");
     try {
       await api(`/vehicles/${unit.id}`, { method: "DELETE" });
-      onDone();
+      onDone(unit);
     } catch (err) {
       setError(errorText(err));
       setBusy(null);

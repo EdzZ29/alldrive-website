@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Inbox, Loader2, MessageSquareText, MessagesSquare, Phone, RefreshCw, SendHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { LinkifiedText } from "@/app/_components/linkified-text";
 import { api, errorText, formatWhen, phoneDigits, type Chat, type ChatEvent, type ChatMessage, type ChatStatus, type ChatWithMessages } from "../../_lib/api";
 import { useChatEvents, useLive } from "../../_components/live";
-import { FilterChips, PageTitle, StatusBadge, useAutoRefresh } from "../../_components/ui";
+import { useRestoredEvents, useUndo } from "../../_components/undo";
+import { FilterChips, PageTitle, Pagination, SearchBox, StatusBadge, useAutoRefresh, usePagedList } from "../../_components/ui";
 
-type Filter = ChatStatus | "All";
-const FILTERS: Filter[] = ["Open", "Closed", "All"];
-const matches = (f: Filter, c: Chat) => f === "All" || c.status === f;
+const FILTERS = ["Open", "Closed", "All"] as const;
+type Filter = (typeof FILTERS)[number];
 const byLatest = (a: Chat, b: Chat) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
 const MAX_LENGTH = 2000;
 
@@ -30,48 +30,50 @@ export function MessagesView() {
   // The open chat lives in the URL (?id=), so notifications and toasts can open one.
   const openId = Number(useSearchParams().get("id")) || null;
   const { connected, refreshSummary } = useLive();
-  const [chats, setChats] = useState<Chat[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const offerUndo = useUndo();
   const [filter, setFilter] = useState<Filter>("Open");
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [refreshing, setRefreshing] = useState(false);
+  const { data, error, reload, setData } = usePagedList<Chat, Filter>("/chats", { page, filter, q });
 
-  const load = useCallback(
-    () =>
-      api<Chat[]>("/chats").then(
-        (list) => {
-          setChats(list);
-          setError(null);
-        },
-        (err) => setError(errorText(err, "Couldn't load messages.")),
-      ),
-    [],
-  );
   const refresh = async () => {
     setRefreshing(true);
-    await load();
+    await reload();
     setRefreshing(false);
   };
-
-  useEffect(() => {
-    void load();
-  }, [load]);
   // Live events keep the list current; this is the backup when the live stream is cut.
-  useAutoRefresh(load, connected ? 30_000 : 8_000);
+  useAutoRefresh(reload, connected ? 30_000 : 8_000);
+  useRestoredEvents(
+    useCallback(() => {
+      void reload();
+      refreshSummary();
+    }, [reload, refreshSummary]),
+  );
 
-  const upsert = useCallback((chat: Chat) => {
-    setChats((list) => (list ? [chat, ...list.filter((c) => c.id !== chat.id)].sort(byLatest) : list));
-  }, []);
+  // Show a change at once on the first page (newest first), then reload for exact counts.
+  const upsert = useCallback(
+    (chat: Chat) => {
+      if (page === 1 && !q && (filter === "All" || chat.status === filter)) {
+        setData((d) => d && { ...d, items: [chat, ...d.items.filter((c) => c.id !== chat.id)].sort(byLatest).slice(0, d.limit) });
+      } else {
+        setData((d) => d && { ...d, items: d.items.map((c) => (c.id === chat.id ? chat : c)) });
+      }
+    },
+    [page, q, filter, setData],
+  );
   useChatEvents(
     useCallback(
       (e: ChatEvent) => {
         // The open chat is marked read as it arrives (see ChatThread).
         upsert(e.conversation.id === openId ? { ...e.conversation, adminUnread: 0 } : e.conversation);
+        void reload();
       },
-      [upsert, openId],
+      [upsert, openId, reload],
     ),
   );
 
-  const visible = useMemo(() => (chats ?? []).filter((c) => matches(filter, c)), [chats, filter]);
+  const items = data?.items ?? [];
   const show = (id: number | null) => router.replace(id ? `${pathname}?id=${id}` : pathname, { scroll: false });
 
   return (
@@ -96,21 +98,39 @@ export function MessagesView() {
 
       <div className="grid gap-4 lg:grid-cols-[20rem_1fr]">
         <div className={cn("min-w-0", openId && "max-lg:hidden")}>
-          <FilterChips label="Filter chats" options={FILTERS} value={filter} onChange={setFilter} count={chats ? (f) => chats.filter((c) => matches(f, c)).length : undefined} />
-          {!chats ? (
+          <SearchBox
+            value={q}
+            onChange={(text) => {
+              setQ(text);
+              setPage(1);
+            }}
+            placeholder="Search name, number or message"
+            label="Search chats"
+          />
+          <FilterChips
+            label="Filter chats"
+            options={FILTERS}
+            value={filter}
+            onChange={(f) => {
+              setFilter(f);
+              setPage(1);
+            }}
+            count={data?.counts ? (f) => data.counts![f] : undefined}
+          />
+          {!data ? (
             !error && (
               <div className="grid place-items-center py-16 text-muted-foreground">
                 <Loader2 className="size-6 animate-spin" aria-label="Loading" />
               </div>
             )
-          ) : visible.length === 0 ? (
+          ) : items.length === 0 ? (
             <div className="grid place-items-center rounded-2xl border border-dashed border-line bg-white px-4 py-16 text-center">
               <Inbox className="size-7 text-muted-foreground" />
-              <p className="mt-2 font-semibold">No chats here</p>
+              <p className="mt-2 font-semibold">{q ? `No chats match "${q}"` : "No chats here"}</p>
             </div>
           ) : (
             <ul className="grid gap-2">
-              {visible.map((c) => (
+              {items.map((c) => (
                 <li key={c.id}>
                   <button
                     onClick={() => show(c.id)}
@@ -133,6 +153,7 @@ export function MessagesView() {
               ))}
             </ul>
           )}
+          {data && <Pagination page={data.page} limit={data.limit} total={data.total} onPage={setPage} />}
         </div>
 
         <div className={cn("min-w-0", !openId && "max-lg:hidden")}>
@@ -145,10 +166,12 @@ export function MessagesView() {
                 upsert(chat);
                 refreshSummary();
               }}
-              onDeleted={() => {
-                setChats((list) => list?.filter((c) => c.id !== openId) ?? null);
-                refreshSummary();
+              onDeleted={(chat) => {
                 show(null);
+                if (data && data.items.length === 1 && page > 1) setPage(page - 1);
+                else void reload();
+                refreshSummary();
+                offerUndo(`Chat with ${chat.name} deleted`, () => api(`/chats/${chat.id}/restore`, { method: "POST" }));
               }}
             />
           ) : (
@@ -174,7 +197,7 @@ function ChatThread({
   id: number;
   onBack: () => void;
   onChange: (chat: Chat) => void;
-  onDeleted: () => void;
+  onDeleted: (chat: Chat) => void;
 }) {
   const { connected } = useLive();
   const [chat, setChat] = useState<ChatWithMessages | null>(null);
@@ -270,11 +293,11 @@ function ChatThread({
   };
 
   const remove = async () => {
-    if (!window.confirm("Delete this chat? Use this for spam. It can't be undone.")) return;
+    if (!window.confirm("Delete this chat? You can undo this right after, or restore it later from the Activity log.")) return;
     setBusy("delete");
     try {
       await api(`/chats/${id}`, { method: "DELETE" });
-      onDeleted();
+      if (chat) onDeleted(chat);
     } catch (err) {
       setError(errorText(err));
       setBusy(null);
@@ -339,7 +362,7 @@ function ChatThread({
             {busy === "status" && <Loader2 className="animate-spin" />}
             {chat.status === "Open" ? "Close" : "Reopen"}
           </Button>
-          <Button variant="ghost" size="icon-lg" disabled={!!busy} onClick={() => void remove()} aria-label="Delete chat (spam)" className="rounded-xl text-muted-foreground hover:text-red-600">
+          <Button variant="ghost" size="icon-lg" disabled={!!busy} onClick={() => void remove()} aria-label="Delete chat" className="rounded-xl text-muted-foreground hover:text-red-600">
             <Trash2 />
           </Button>
         </div>

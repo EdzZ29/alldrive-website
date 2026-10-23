@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Loader2, UserPlus, Volume2 } from "lucide-react";
+import { Loader2, Trash2, UserPlus, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,8 @@ import { api, errorText, type User } from "../../_lib/api";
 import { useAdmin } from "../../_components/admin-shell";
 import { playChime, setSoundPref, useSoundPref } from "../../_components/live";
 import { PushToggle } from "../../_components/push-toggle";
-import { Field, PageTitle, PasswordInput } from "../../_components/ui";
+import { Field, PageTitle, pageSlice, Pagination, PasswordInput } from "../../_components/ui";
+import { useRestoredEvents, useUndo } from "../../_components/undo";
 
 type Message = { ok: boolean; text: string } | null;
 const inputClass = "h-11 rounded-xl bg-white";
@@ -175,11 +176,14 @@ function AdminsSection() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [busy, setBusy] = useState<number | "add" | null>(null);
   const [message, setMessage] = useState<Message>(null);
+  const [page, setPage] = useState(1);
+  const offerUndo = useUndo();
 
   const load = useCallback(() => api<User[]>("/users").then(setAdmins, (err) => setMessage({ ok: false, text: errorText(err) })), []);
   useEffect(() => {
     void load();
   }, [load]);
+  useRestoredEvents(load);
 
   const add = async (e: FormEvent) => {
     e.preventDefault();
@@ -212,13 +216,30 @@ function AdminsSection() {
     }
   };
 
+  // Deleted admins can't sign in; the account is kept so it can be restored.
+  const remove = async (a: User) => {
+    if (!window.confirm(`Delete ${a.name}'s admin account? They're signed out right away. You can undo this right after, or restore it later from the Activity log.`)) return;
+    setBusy(a.id);
+    setMessage(null);
+    try {
+      await api(`/users/${a.id}`, { method: "DELETE" });
+      void load();
+      offerUndo(`${a.name}'s admin account deleted`, () => api(`/users/${a.id}/restore`, { method: "POST" }));
+    } catch (err) {
+      setMessage({ ok: false, text: errorText(err) });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const shown = pageSlice(admins ?? [], page, 10);
   return (
     <Section title="Admin accounts" description="Everyone who can sign in to this dashboard.">
       {!admins ? (
         <Loader2 className="mx-auto my-6 size-5 animate-spin text-muted-foreground" aria-label="Loading" />
       ) : (
         <ul className="grid gap-2">
-          {admins.map((a) => (
+          {shown.items.map((a) => (
             <li key={a.id} className="flex items-center gap-3 rounded-xl border border-line p-3">
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-bold">
@@ -232,10 +253,16 @@ function AdminsSection() {
                 </Button>
               )}
               {!a.isActive && <span className="shrink-0 text-xs font-semibold text-muted-foreground">Off</span>}
+              {a.id !== user.id && (
+                <Button variant="ghost" size="icon-lg" disabled={busy === a.id} onClick={() => void remove(a)} aria-label={`Delete ${a.name}`} className="shrink-0 rounded-xl text-muted-foreground hover:bg-red-50 hover:text-red-600">
+                  <Trash2 />
+                </Button>
+              )}
             </li>
           ))}
         </ul>
       )}
+      {admins && <Pagination page={shown.page} limit={shown.limit} total={shown.total} onPage={setPage} />}
 
       <form method="post" onSubmit={add} className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-3">
         <Field id="a-name" label="Name">
