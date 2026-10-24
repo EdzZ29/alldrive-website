@@ -13,6 +13,8 @@ export const quickTopics = [
   { id: "requirements", label: "What are the requirements?" },
   { id: "booking", label: "How do I book?" },
   { id: "location", label: "Where are you located?" },
+  { id: "airportPickup", label: "Can I get the car at the airport?" },
+  { id: "airportDropoff", label: "Can I return the car at the airport?" },
 ] as const;
 export type QuickTopicId = (typeof quickTopics)[number]["id"];
 
@@ -43,6 +45,16 @@ export function quickAnswer(id: QuickTopicId, catalog: Pick<Catalog, "startingRa
       ].join("\n\n");
     case "location":
       return `We're at ${site.address.full}, open 24 hours. Directions: ${site.directionsUrl}`;
+    case "airportPickup":
+      return [
+        "Yes! We can meet you with the car at Bancasi Airport (Butuan Airport) when you land.",
+        'When you book, write "airport pickup" with your flight number and arrival time under Purpose, or send them to us here. We\'ll be at the arrival area ahead of time, and if your flight is delayed, we\'ll wait.',
+      ].join("\n\n");
+    case "airportDropoff":
+      return [
+        "Yes! You can return the car at Bancasi Airport (Butuan Airport) before your flight.",
+        "Tell us your flight number and departure time when you book, or send them here, and we'll meet you at the departure area to take the car back. Please come about 2 hours before your flight so there's time for check-in.",
+      ].join("\n\n");
   }
 }
 
