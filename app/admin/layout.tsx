@@ -21,7 +21,9 @@ const hidePublicChrome = "body:has([data-admin-app]) > header, body:has([data-ad
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <div data-admin-app className="min-h-svh bg-muted/40">
+    // data-clarity-mask: if Clarity is still running from a public page the admin opened first,
+    // it records the dashboard with all text hidden.
+    <div data-admin-app data-clarity-mask="true" className="min-h-svh bg-muted/40">
       <style>{hidePublicChrome}</style>
       {children}
     </div>

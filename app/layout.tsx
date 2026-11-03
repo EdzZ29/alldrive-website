@@ -9,6 +9,7 @@ import { catalogFrom, site, type Catalog } from "@/lib/site";
 import { getCatalogData } from "@/lib/catalog";
 import { CatalogProvider } from "./_components/catalog-provider";
 import { ChatWidget } from "./_components/chat-widget";
+import { Clarity } from "./_components/clarity";
 import { Suspense } from "react";
 import { homeTitle } from "@/lib/seo";
 import "./globals.css";
@@ -182,6 +183,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         </CatalogProvider>
         <RevealObserver />
         <Analytics />
+        {/* Reads the URL (skipped on /admin), like the chat widget. */}
+        <Suspense fallback={null}>
+          <Clarity />
+        </Suspense>
       </body>
     </html>
   );
