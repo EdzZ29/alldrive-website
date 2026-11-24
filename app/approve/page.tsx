@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { CircleAlert } from "lucide-react";
 import { readApprovalToken } from "@/lib/approval";
 import { site } from "@/lib/site";
@@ -36,6 +37,8 @@ export default function ApprovePage({ searchParams }: PageProps<"/approve">) {
 
 async function Approval({ searchParams }: Pick<PageProps<"/approve">, "searchParams">) {
   const { t } = await searchParams;
+  // Checking the link's expiry reads the clock, so this runs on every request.
+  await connection();
   const token = typeof t === "string" ? t : "";
   const check = readApprovalToken(token);
   if (!check.ok) {
