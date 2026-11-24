@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import {
   ArrowLeft,
@@ -15,7 +14,6 @@ import {
   ListChecks,
   Loader2,
   MessageSquareText,
-  PackageSearch,
   Pencil,
   Send,
   UserCheck,
@@ -51,7 +49,6 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MessengerIcon, WhatsAppIcon } from "./brand";
 import { DestinationSelect } from "./destination-select";
 import { useCatalog } from "./catalog-provider";
-import { rememberBooking } from "./track-tour";
 
 type Mode = "self" | "driver";
 
@@ -127,7 +124,7 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [sent, setSent] = useState<{ reference: string; trackable: boolean } | null>(null);
+  const [sent, setSent] = useState<{ reference: string } | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [sending, startSending] = useTransition();
   const tripRef = useRef<HTMLFieldSetElement>(null);
@@ -222,8 +219,7 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
     startSending(async () => {
       const result = await submitBooking(snapshot);
       if (result.ok) {
-        setSent({ reference: result.reference, trackable: result.trackable });
-        if (result.trackable) rememberBooking(result.reference);
+        setSent({ reference: result.reference });
         go("sent");
       } else setError(result.error);
     });
@@ -640,20 +636,9 @@ function BookingForm({ defaults }: { defaults: BookingDefaults }) {
                 </Button>
               </div>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                {sent.trackable
-                  ? "Save this code. Use it with your mobile number or email to check your booking status anytime."
-                  : "Save this code and mention it when you call or message us about your booking."}
+                Save this code and mention it when you call or message us about your booking. Once it&apos;s approved, you&apos;ll get a
+                &ldquo;Booking approved&rdquo; email (if you left your email) or a text from us.
               </p>
-              {sent.trackable && (
-                // Closes the dialog too, in case it lives in the layout and stays mounted.
-                <DialogClose asChild>
-                  <Button asChild variant="outline" className="h-11 rounded-xl border-line font-bold">
-                    <Link href={`/track?ref=${encodeURIComponent(sent.reference)}`}>
-                      <PackageSearch className="text-brand-600" /> Track my booking
-                    </Link>
-                  </Button>
-                </DialogClose>
-              )}
             </section>
           )}
           <div className="rounded-2xl bg-emerald-50 p-5 text-sm leading-relaxed text-emerald-900">

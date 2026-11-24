@@ -158,7 +158,24 @@ const plainSection = (title: string, rows: [string, string, string?][]) =>
 
 // ---------- Team notification ----------
 
-export function buildBookingEmail(d: BookingDetails, meta: BookingMeta, business: BusinessContact) {
+function approveBlock(href: string, d: BookingDetails) {
+  const who = escapeHtml(d.name.split(/\s+/)[0]);
+  return `<tr><td style="padding:16px 24px 0">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ecfdf3;border:1px solid #bbf7d0;border-radius:12px">
+    <tr><td style="padding:14px 16px">
+      <a href="${escapeHtml(href)}" style="display:block;background:${C.green};color:#ffffff;text-decoration:none;font-size:16px;font-weight:bold;text-align:center;padding:14px 8px;border-radius:10px">&#10003; Approve booking</a>
+      <p style="margin:8px 0 0;color:${C.muted};font-size:12px;line-height:1.5">${
+        d.email
+          ? `Opens a page where you check the car, price and pickup, then send ${who} the &ldquo;Booking approved&rdquo; email.`
+          : `${who} didn't leave an email: the page gives you a ready-made confirmation text to send instead.`
+      }</p>
+    </td></tr>
+  </table>
+</td></tr>`;
+}
+
+/** `approveUrl`: the signed "Approve booking" link (see lib/approval.ts), when set up. */
+export function buildBookingEmail(d: BookingDetails, meta: BookingMeta, business: BusinessContact, approveUrl?: string | null) {
   const firstName = d.name.split(/\s+/)[0];
   const tel = phoneLink(d.contact);
   const reply = `Hi ${firstName}, this is ${business.name} about your booking ${meta.reference}: ${d.car}, ${d.dateTime}, ${plural(d.days, "day")}. `;
@@ -212,6 +229,7 @@ export function buildBookingEmail(d: BookingDetails, meta: BookingMeta, business
     `NEW BOOKING REQUEST ${meta.reference}`,
     `Received ${meta.receivedAt} from the website booking form.`,
     "",
+    ...(approveUrl ? [`APPROVE this booking (emails the customer "Booking approved"): ${approveUrl}`, ""] : []),
     `Call or text: ${tel}`,
     ...(d.email ? [`Email: ${d.email} (reply to this email to answer the customer)`] : []),
     "",
@@ -227,6 +245,7 @@ export function buildBookingEmail(d: BookingDetails, meta: BookingMeta, business
     [
       header("New booking request", d.car, `${d.dateTime} · ${plural(d.days, "day")} · ${d.service} · ${destinationText(d)}`, meta.reference),
       estimateBox(d.estimate, `Received ${meta.receivedAt}. Confirm availability and the final rate with the customer.`),
+      approveUrl ? approveBlock(approveUrl, d) : "",
       `<tr><td style="padding:16px 20px 0">
         <p style="margin:0 4px 6px;color:${C.muted};font-size:13px">Contact ${escapeHtml(firstName)} at <a href="tel:${escapeHtml(tel)}" style="color:${C.ink};font-weight:bold">${escapeHtml(d.contact)}</a> (text and WhatsApp open with a reply ready):</p>
         ${actions(buttons)}
@@ -313,6 +332,130 @@ export function buildCustomerEmail(d: BookingDetails, meta: BookingMeta, busines
       estimateBox(d.estimate, estimateNote),
       section("Your trip", trip),
       section("Your details", you),
+      `<tr><td style="padding:24px 20px 0">
+        <p style="margin:0 4px 8px;font-size:15px;font-weight:bold">Questions or changes? Reply to this email or reach us here:</p>
+        ${actions(buttons)}
+      </td></tr>`,
+      textBlock(
+        `<b>Visit us:</b> ${escapeHtml(business.address)} &middot; <a href="${escapeHtml(business.directionsUrl)}" style="color:${C.ink}">Get directions</a>`,
+        `padding-bottom:24px;font-size:13px;color:${C.muted}`,
+      ),
+    ].join(""),
+    `You're getting this email because you booked a car on the ${escapeHtml(business.name)} website.`,
+  );
+
+  return { subject, text, html };
+}
+
+// ---------- Booking approved (sent from the /approve page) ----------
+
+/** The booking as approved by the team (they can change the car, total and handover). */
+export type ApprovedBooking = {
+  reference: string;
+  name: string;
+  car: string;
+  pickup: string;
+  returnAt: string;
+  days: number;
+  service: string;
+  destination: string;
+  total: string;
+  handover: string;
+  /** Optional message from the team. */
+  note: string;
+};
+
+export type Requirements = { everyone: readonly string[]; selfDrive: readonly string[]; withDriver: readonly string[] };
+
+const needsOf = (b: ApprovedBooking, req: Requirements) => [...req.everyone, ...(b.service === "With driver" ? req.withDriver : req.selfDrive)];
+
+/** Short confirmation for customers without an email (text / WhatsApp). */
+export function approvedTextMessage(b: ApprovedBooking, business: BusinessContact) {
+  return [
+    `Hi ${b.name.split(/\s+/)[0]}! Your ${business.name} booking ${b.reference} is APPROVED.`,
+    `Car: ${b.car}`,
+    `Pickup: ${b.pickup}`,
+    `Return: ${b.returnAt} (${plural(b.days, "day")})`,
+    b.handover,
+    `Total: ${b.total}`,
+    ...(b.note ? ["", b.note] : []),
+    "",
+    "Thank you!",
+  ].join("\n");
+}
+
+export function buildApprovedEmail(b: ApprovedBooking, business: BusinessContact, req: Requirements) {
+  const firstName = b.name.split(/\s+/)[0];
+  const needs = needsOf(b, req);
+  const subject = `Your booking is approved (${b.reference}): ${b.car} on ${b.pickup}`;
+  const details: [string, string, string?][] = [
+    ["Booking reference", b.reference],
+    ["Car", b.car],
+    ["Service", b.service],
+    ["Destination", b.destination],
+    ["Pickup / delivery", b.handover],
+    ["Total", b.total],
+  ];
+  const chat = `Hi ${business.name}! About my booking ${b.reference}: `;
+  const buttons: Action[] = [
+    ...business.phones.map((p) => ({ label: `Call ${p.network} ${p.display}`, href: `tel:${phoneLink(p.href)}`, bg: C.brand, fg: C.ink })),
+    { label: "WhatsApp us", href: `https://api.whatsapp.com/send?phone=${business.whatsappNumber}&text=${encodeURIComponent(chat)}`, bg: "#25d366", fg: "#ffffff" },
+    { label: "Messenger", href: business.messenger, bg: "#0a7cff", fg: "#ffffff" },
+  ];
+
+  const text = [
+    `Hi ${firstName},`,
+    "",
+    "YOUR BOOKING IS APPROVED. Your car is confirmed and reserved for you.",
+    "",
+    `Pickup: ${b.pickup}`,
+    `Return: ${b.returnAt} (${plural(b.days, "day")})`,
+    ...details.map(([k, v]) => `${k}: ${v}`),
+    ...(b.note ? ["", b.note] : []),
+    "",
+    "Please bring:",
+    ...needs.map((n) => `- ${n}`),
+    "",
+    "Questions or changes? Reply to this email, or contact us:",
+    ...business.phones.map((p) => `Call/text ${p.network}: ${p.display}`),
+    `WhatsApp: https://api.whatsapp.com/send?phone=${business.whatsappNumber}`,
+    `Messenger: ${business.messenger}`,
+    `Visit: ${business.address}`,
+    "",
+    `Thank you for choosing ${business.name}!`,
+  ].join("\n");
+
+  const html = page(
+    `Your booking is approved: ${b.car} on ${b.pickup}.`,
+    [
+      header("Booking approved", "Your booking is approved", `✓ Confirmed and reserved: ${b.car}`, b.reference),
+      textBlock(
+        `Hi ${escapeHtml(firstName)},<br>Your booking with ${escapeHtml(business.name)} has been <b style="color:${C.green}">approved</b>. Your car is confirmed and reserved for you. Here are your booking details:`,
+      ),
+      `<tr><td style="padding:16px 24px 0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ecfdf3;border:1px solid #bbf7d0;border-radius:12px">
+          <tr>
+            <td width="50%" style="padding:14px 16px;vertical-align:top">
+              <p style="margin:0;color:${C.muted};font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase">Pickup</p>
+              <p style="margin:4px 0 0;font-size:16px;font-weight:bold;color:${C.green}">${escapeHtml(b.pickup)}</p>
+            </td>
+            <td width="50%" style="padding:14px 16px;vertical-align:top;border-left:1px solid #bbf7d0">
+              <p style="margin:0;color:${C.muted};font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase">Return</p>
+              <p style="margin:4px 0 0;font-size:16px;font-weight:bold">${escapeHtml(b.returnAt)}</p>
+              <p style="margin:2px 0 0;font-size:14px;color:${C.muted}">${escapeHtml(plural(b.days, "day"))}</p>
+            </td>
+          </tr>
+        </table>
+      </td></tr>`,
+      section("Your booking", details),
+      b.note ? textBlock(escapeHtml(b.note).replace(/\n/g, "<br>")) : "",
+      `<tr><td style="padding:20px 24px 0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef8ff;border:1px solid #cdeaff;border-radius:12px">
+          <tr><td style="padding:14px 16px;font-size:14px;line-height:1.6">
+            <b>Please bring:</b><br>${needs.map((n) => `&#10003; ${escapeHtml(n)}`).join("<br>")}
+          </td></tr>
+        </table>
+      </td></tr>`,
       `<tr><td style="padding:24px 20px 0">
         <p style="margin:0 4px 8px;font-size:15px;font-weight:bold">Questions or changes? Reply to this email or reach us here:</p>
         ${actions(buttons)}

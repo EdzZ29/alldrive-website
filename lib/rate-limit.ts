@@ -1,6 +1,5 @@
-// Per-visitor limit for the booking and inquiry forms, which send emails, paid texts and
-// dashboard entries. Kept in memory, so it resets when the server restarts; enough to stop
-// someone spamming a form.
+// Per-visitor limit for the booking and inquiry forms, which send emails. Kept in memory, so it
+// resets when the server restarts; enough to stop someone spamming a form.
 
 const WINDOW_MS = 30 * 60 * 1000;
 

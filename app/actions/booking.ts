@@ -1,9 +1,9 @@
 "use server";
 
 import { headers } from "next/headers";
-import nodemailer from "nodemailer";
+import { approvalLink } from "@/lib/approval";
 import { buildBookingEmail, buildCustomerEmail, type BookingDetails, type BookingMeta, type BusinessContact } from "@/lib/booking-email";
-import { dashboardConfigured, sendBookingToDashboard } from "@/lib/dashboard";
+import { mailer, mailUser, teamInbox } from "@/lib/mailer";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { areaLabel, peso, places, site, zoneOf, zones, type VehicleId } from "@/lib/site";
 import { getCatalog } from "@/lib/catalog";
@@ -11,15 +11,13 @@ import placeAreas from "@/lib/place-areas.json";
 
 const areasOf: Record<string, string[]> = placeAreas;
 
-/** `trackable`: the dashboard has the booking, so /track can find it by `reference`. */
-export type BookingResult = { ok: true; reference: string; trackable: boolean } | { ok: false; error: string };
+export type BookingResult = { ok: true; reference: string } | { ok: false; error: string };
 
-const BOOKING_TO = process.env.BOOKING_EMAIL_TO || "alldrivebtc@gmail.com";
-// The customer's "we received your booking" email. (The "confirmed" email comes from the
-// dashboard when an admin approves the booking.)
+// The customer's "we received your booking" email. (The "approved" email is sent when the team
+// taps "Approve booking" in their booking email; see app/approve.)
 const EMAIL_CONFIRM_CUSTOMER = process.env.BOOKING_EMAIL_CONFIRM_CUSTOMER !== "false";
 
-// Each booking sends emails and dashboard alerts, so one visitor can only send a few in a row.
+// Each booking sends emails, so one visitor can only send a few in a row.
 const isRateLimited = createRateLimiter(5);
 
 const str = (data: FormData, key: string, max = 200) => String(data.get(key) ?? "").trim().slice(0, max);
@@ -54,7 +52,7 @@ function bookingReference() {
 
 export async function submitBooking(data: FormData): Promise<BookingResult> {
   // Spam guards: a hidden field real people never fill, and a minimum time on the form.
-  if (str(data, "website")) return { ok: true, reference: bookingReference(), trackable: false };
+  if (str(data, "website")) return { ok: true, reference: bookingReference() };
   const startedAt = Number(data.get("startedAt"));
   if (!startedAt || Date.now() - startedAt < 3000) {
     return { ok: false, error: "Please take a moment to review your details, then try again." };
@@ -73,7 +71,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   const rawDateTime = str(data, "datetime", 20);
   const dateTime = formatLocalDateTime(rawDateTime);
   const place = places.find((p) => p.id === str(data, "placeId"));
-  // Same fleet and prices the visitor saw (as edited in the admin dashboard).
+  // Same fleet and prices the visitor saw.
   const { fleet, models, driverRate, estimateTrip } = await getCatalog();
   const [vehicleId, modelId] = str(data, "car").split(":") as [VehicleId, string | undefined];
   const vehicle = fleet.find((v) => v.id === vehicleId);
@@ -134,75 +132,50 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
     returnDateTime: formatLocalDateTime(rawDateTime, days)!,
   };
 
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
-  if (!dashboardConfigured) console.error("Booking not saved to the dashboard: set ALLDRIVE_API_URL and ALLDRIVE_API_KEY.");
-  if (!dashboardConfigured && (!user || !pass)) {
-    console.error("Backup booking email not possible: set GMAIL_USER and GMAIL_APP_PASSWORD.");
+  const transporter = mailer();
+  if (!transporter) {
+    console.error("Booking email not possible: set GMAIL_USER and GMAIL_APP_PASSWORD.");
     return { ok: false, error: "Online booking is temporarily unavailable. Please text or message us instead." };
   }
 
-  const transporter = user && pass ? nodemailer.createTransport({ service: "gmail", auth: { user, pass } }) : null;
-
-  // Bookings go to the admin dashboard. The team Gmail only gets the booking as a backup when
-  // the dashboard can't be reached, so nothing is lost.
-  const [dashboard] = await Promise.allSettled([
-    dashboardConfigured
-      ? sendBookingToDashboard({
-          reference: meta.reference,
-          name,
-          contact,
-          ...(customerEmail && { email: customerEmail }),
-          address,
-          work,
-          destination: place.name,
-          zone: details.zone,
-          specificPlace,
-          pickup: rawDateTime,
-          days,
-          driveType: withDriver ? "With Driver" : "Self Drive",
-          ...(!withDriver && { yearsDriving: Math.floor(Number(yearsDriving)) || 0 }),
-          carCategory: vehicle.id,
-          ...(model && { carModel: model.id }),
-          carLabel: details.car,
-          purpose,
-          ...(total != null && { estimatedTotal: total }),
-          estimateText: estimate,
-        })
-      : Promise.reject(new Error("Dashboard not configured")),
-  ]);
-  if (dashboard.status === "rejected" && dashboardConfigured) console.error("Booking dashboard save failed:", dashboard.reason);
-
-  // Backup only: email the booking to the team if the dashboard didn't get it.
-  const [email] = await Promise.allSettled([
-    dashboard.status === "fulfilled"
-      ? Promise.reject(new Error("Not needed: the dashboard has it"))
-      : transporter
-        ? transporter.sendMail({
-            from: `"AllDrive Website" <${user}>`,
-            to: BOOKING_TO,
-            // "Reply" in Gmail goes straight to the customer when they left an email.
-            ...(customerEmail && { replyTo: customerEmail }),
-            ...buildBookingEmail(details, meta, business),
-          })
-        : Promise.reject(new Error("Gmail not configured")),
-  ]);
-  if (dashboard.status === "rejected" && email.status === "rejected") {
-    console.error("Backup booking email failed:", email.reason);
+  // The team's booking email, with an "Approve booking" button (see lib/approval.ts).
+  const approveUrl = approvalLink({
+    reference: meta.reference,
+    name,
+    contact,
+    email: customerEmail,
+    car: details.car,
+    pickup: dateTime,
+    returnAt: meta.returnDateTime,
+    days,
+    service: withDriver ? "With driver" : "Self-drive",
+    destination: specificPlace ? `${place.name} (${specificPlace})` : place.name,
+    estimate,
+  });
+  try {
+    await transporter.sendMail({
+      from: `"AllDrive Website" <${mailUser}>`,
+      to: teamInbox,
+      // "Reply" in Gmail goes straight to the customer when they left an email.
+      ...(customerEmail && { replyTo: customerEmail }),
+      ...buildBookingEmail(details, meta, business, approveUrl),
+    });
+  } catch (err) {
+    console.error("Booking email failed:", err);
     return { ok: false, error: "We couldn't send your booking right now. Please text or message us instead." };
   }
 
   // Let the customer know it arrived. A failure here shouldn't undo a booking the team already has.
-  if (transporter && customerEmail && EMAIL_CONFIRM_CUSTOMER) {
+  if (customerEmail && EMAIL_CONFIRM_CUSTOMER) {
     await transporter
       .sendMail({
-        from: `"${site.legalName}" <${user}>`,
+        from: `"${site.legalName}" <${mailUser}>`,
         to: customerEmail,
-        replyTo: BOOKING_TO,
+        replyTo: teamInbox,
         ...buildCustomerEmail(details, meta, business),
       })
       .catch((err) => console.error("Customer confirmation email failed:", err));
   }
 
-  return { ok: true, reference: meta.reference, trackable: dashboard.status === "fulfilled" };
+  return { ok: true, reference: meta.reference };
 }

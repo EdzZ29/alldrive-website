@@ -1,6 +1,6 @@
 // Live chat (the bubble at the bottom right): quick questions with instant answers and the
-// automatic replies. Shared by the chat window (browser) and /api/live-chat (server), so both
-// give the same answers from the same fleet, prices and contact details.
+// automatic replies. Used by the chat window, so its answers come from the same fleet, prices
+// and contact details as the rest of the site.
 import { discountMinDays, rentalRequirements, site, type Catalog } from "./site";
 
 export const CHAT_MAX_LENGTH = 1000;
@@ -41,7 +41,7 @@ export function quickAnswer(id: QuickTopicId, catalog: Pick<Catalog, "startingRa
     case "booking":
       return [
         'Tap "Book now" at the top of the page (on phones it\'s in the menu), then choose your car, dates and destination and send it.',
-        `We'll call or text you to confirm, and you'll get a "Booking Confirmed" message with your pickup day and time. You can check your booking anytime: ${site.url}/track`,
+        `We'll call or text you to confirm, and you'll get a "Booking approved" message with your pickup day and time. Questions about your booking? Message us on WhatsApp or Messenger with your booking code.`,
       ].join("\n\n");
     case "location":
       return `We're at ${site.address.full}, open 24 hours. Directions: ${site.directionsUrl}`;
@@ -59,7 +59,7 @@ export function quickAnswer(id: QuickTopicId, catalog: Pick<Catalog, "startingRa
 }
 
 /** First thing the chat window says (shown in the window, not saved). */
-export const chatGreeting = `Hi! Welcome to ${site.legalName}. Pick a question below for an instant answer, or send us a message and our team will reply here.`;
+export const chatGreeting = `Hi! Welcome to ${site.legalName}. Pick a question below for an instant answer, or type a message to send it to our team on WhatsApp.`;
 
 /** Automatic reply to the visitor's first message. */
 export function firstMessageReply(name: string, contact: string) {

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, type ComponentProps } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ArrowUpRight, BadgePercent, Menu, PackageSearch, Phone } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgePercent, Menu, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { discountMinDays, nav, quoteHref, site, whatsappLink } from "@/lib/site";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { Logo, ViberIcon, WhatsAppIcon } from "./brand";
 import { BookingDialog } from "./booking-dialog";
 import { ViberLink } from "./viber-link";
 import { ChatMenu } from "./chat-menu";
-import { TrackTourCallout, useTrackTour } from "./track-tour";
 
 const smart = site.phones[0];
 
@@ -33,8 +32,6 @@ const desktopLink =
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  // Returning customers: a pointer to Track my booking.
-  const tour = useTrackTour();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -103,28 +100,6 @@ export function Navbar() {
         </ul>
 
         <div className="flex items-center gap-2">
-          {/* Track my booking (the call numbers are in the contact menu next to it) */}
-          <div className="relative hidden md:block">
-            <Link
-              href="/track"
-              onClick={tour.dismiss}
-              className={cn(
-                "group flex items-center gap-2.5 rounded-xl px-2 py-1 text-white/85 transition-colors hover:text-white",
-                tour.open && "bg-white/10 text-white ring-2 ring-brand",
-              )}
-            >
-              <span className="grid size-9 place-items-center rounded-full bg-white/10 text-brand transition-transform duration-300 group-hover:-rotate-12">
-                <PackageSearch className="size-4" />
-              </span>
-              <span className="flex flex-col text-left leading-tight">
-                <span className="text-[10px] font-semibold tracking-wider text-white/50 uppercase">Track my</span>
-                <span className="text-sm font-semibold">Booking</span>
-              </span>
-            </Link>
-            {tour.open && (
-              <TrackTourCallout reference={tour.reference} onDismiss={tour.dismiss} hint="It's always here, under Track my booking." className="-right-2" />
-            )}
-          </div>
           <ChatMenu className="hidden md:inline-flex" withCalls />
           <BookingDialog defaults={{ vehicleId: "sedan" }}>
             <Button variant="brand" size="md" className="group hidden sm:inline-flex">
@@ -141,23 +116,11 @@ export function Navbar() {
                   variant="outline"
                   size="icon-xl"
                   aria-label="Open menu"
-                  className={cn(
-                    "border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white",
-                    tour.open && "ring-2 ring-brand max-md:border-brand",
-                  )}
+                  className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white"
                 >
                   <Menu />
                 </Button>
               </SheetTrigger>
-              {/* From md up, Track my booking is in the bar itself (callout above). */}
-              {tour.open && (
-                <TrackTourCallout
-                  reference={tour.reference}
-                  onDismiss={tour.dismiss}
-                  hint="Find it anytime in this menu, under Track my booking."
-                  className="md:hidden"
-                />
-              )}
             </div>
             <SheetContent side="right" className="w-[88%] border-white/10 bg-ink text-white sm:max-w-sm [&>button]:text-white">
               <SheetHeader className="p-5">
@@ -181,17 +144,6 @@ export function Navbar() {
                 ))}
               </ul>
               <SheetFooter className="gap-2 border-t border-white/10 p-4">
-                <SheetClose asChild>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="h-12 rounded-xl border-white/15 bg-transparent font-semibold text-white hover:bg-white/10 hover:text-white"
-                  >
-                    <Link href="/track" onClick={tour.dismiss}>
-                      <PackageSearch className="size-4 text-brand" /> Track my booking
-                    </Link>
-                  </Button>
-                </SheetClose>
                 <Button
                   asChild
                   variant="outline"

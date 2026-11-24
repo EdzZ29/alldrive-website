@@ -162,7 +162,7 @@ function businessJsonLd({ fleet, driverRate, startingRate }: Catalog) {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // Fleet, prices and photos as edited in the admin dashboard (built-in fleet as fallback).
+  // Fleet, prices and photos (built-in, from lib/site.ts).
   const catalogData = await getCatalogData();
   const jsonLd = businessJsonLd(catalogFrom(catalogData));
   return (
@@ -176,14 +176,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <Navbar />
           {children}
           <Footer />
-          {/* Reads the URL (hidden on /admin), so it can't be part of the prerendered shell. */}
+          {/* Reads the URL (hidden on /approve), so it can't be part of the prerendered shell. */}
           <Suspense fallback={null}>
             <ChatWidget />
           </Suspense>
         </CatalogProvider>
         <RevealObserver />
         <Analytics />
-        {/* Reads the URL (skipped on /admin), like the chat widget. */}
+        {/* Reads the URL (skipped on /approve), like the chat widget. */}
         <Suspense fallback={null}>
           <Clarity />
         </Suspense>

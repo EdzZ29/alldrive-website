@@ -29,7 +29,7 @@ function Field({ id, label, hint, children }: { id: string; label: string; hint?
 const noop = () => () => {};
 const useHydrated = () => useSyncExternalStore(noop, () => true, () => false);
 
-/** "Send us a message" form. Goes straight to the AllDrive team's dashboard. */
+/** "Send us a message" form. Emailed straight to the AllDrive team. */
 export function InquiryForm({ page }: { page: string }) {
   const hydrated = useHydrated();
   const [topic, setTopic] = useState<string>(inquiryTopics[0]);

@@ -1,15 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 // Maintenance mode: visitors see /maintenance (with a 503 so search engines keep the old pages)
-// while the site is being set up. The admin dashboard and its API stay reachable.
+// while the site is being set up. Booking approval links (/approve) keep working.
 //
 // MAINTENANCE_MODE=on turns it on (then redeploy); unset or off = the normal site.
 // MAINTENANCE_BYPASS_KEY: open any page once with ?preview=<key> to see the real site in that
 // browser (?preview=off to see the maintenance page again).
 
 const PREVIEW_COOKIE = "alldrive_preview";
-// Paths that always work: the dashboard, the backend API it uses, and uploaded photos.
-const ALWAYS_OPEN = /^\/(admin|api|uploads)(\/|$)/;
+// Paths that always work: the booking approval page the team opens from its booking emails.
+const ALWAYS_OPEN = /^\/approve(\/|$)/;
 
 function maintenanceOn() {
   const setting = process.env.MAINTENANCE_MODE?.trim().toLowerCase();
